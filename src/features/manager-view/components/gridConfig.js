@@ -1,0 +1,107 @@
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
+import { maskEmail, maskPhone } from '@/shared/lib/mask';
+
+ModuleRegistry.registerModules([AllCommunityModule]);
+
+// Mask phone/email exports for non-PII-viewers. Returns the value to write for a given field.
+const maskExportValue = (field, value) => {
+  if (value === null || value === undefined || value === '') return value;
+  if (field === 'phone') return maskPhone(value);
+  if (field === 'email') return maskEmail(value);
+  return value;
+};
+
+// Dark grid theme (mirrors reporting/HotLeadsGrid).
+export const agThemeDark = themeQuartz.withParams({
+  backgroundColor: 'transparent',
+  headerBackgroundColor: 'hsl(var(--secondary) / 0.85)',
+  headerTextColor: 'hsl(var(--muted-foreground))',
+  foregroundColor: 'hsl(var(--foreground))',
+  borderColor: 'hsl(var(--border) / 0.6)',
+  rowHoverColor: 'hsl(var(--secondary) / 0.5)',
+  oddRowBackgroundColor: 'hsl(var(--card) / 0.3)',
+  selectedRowBackgroundColor: 'hsl(var(--primary) / 0.1)',
+  menuBackgroundColor: 'hsl(var(--tw-slate-900))',
+  dialogBackgroundColor: 'hsl(var(--tw-slate-900))',
+  headerHeight: 40,
+  rowHeight: 40,
+  wrapperBorderRadius: 0,
+  fontFamily: 'Inter, sans-serif',
+});
+
+// Light grid theme — navy header bar + white rows, matching the traditional-dashboard look.
+export const agThemeLight = themeQuartz.withParams({
+  backgroundColor: '#ffffff',
+  headerBackgroundColor: 'hsl(218 44% 18%)',
+  headerTextColor: '#ffffff',
+  foregroundColor: 'hsl(222 44% 14%)',
+  borderColor: 'hsl(214 28% 90%)',
+  rowHoverColor: 'hsl(210 40% 95%)',
+  oddRowBackgroundColor: 'hsl(210 40% 98%)',
+  selectedRowBackgroundColor: 'hsl(212 72% 45% / 0.10)',
+  menuBackgroundColor: '#ffffff',
+  dialogBackgroundColor: '#ffffff',
+  headerHeight: 40,
+  rowHeight: 40,
+  wrapperBorderRadius: 0,
+  fontFamily: 'Inter, sans-serif',
+});
+
+// Back-compat alias (default = dark).
+export const agTheme = agThemeDark;
+export const gridTheme = (theme) => (theme === 'light' ? agThemeLight : agThemeDark);
+
+export const defaultColDef = {
+  resizable: true,
+  sortable: true,
+  suppressMovable: true,
+  filter: 'agTextColumnFilter',
+  filterParams: { buttons: ['reset'], debounceMs: 200 },
+};
+
+const stamp = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Column ids beginning with "__" are action/interactive columns — never exported.
+const exportableCols = (api) =>
+  api.getAllDisplayedColumns().filter((c) => !c.getColId().startsWith('__'));
+
+export function exportCsv(api, base, maskPii = false) {
+  if (!api || api.getDisplayedRowCount() === 0) return 0;
+  api.exportDataAsCsv({
+    fileName: `${base}-${stamp()}.csv`,
+    columnKeys: exportableCols(api).map((c) => c.getColId()),
+    // Mask phone/email from the raw row value (independent of the display formatter).
+    processCellCallback: (p) => {
+      const field = p.column.getColDef().field;
+      const raw = p.node?.data?.[field] ?? p.value;
+      return maskPii ? maskExportValue(field, raw) : p.value;
+    },
+  });
+  return api.getDisplayedRowCount();
+}
+
+export async function exportExcel(api, base, maskPii = false) {
+  if (!api || api.getDisplayedRowCount() === 0) return 0;
+  const cols = exportableCols(api);
+  const headers = cols.map((c) => c.getColDef().headerName || c.getColId());
+  const fields = cols.map((c) => c.getColDef().field);
+  const rows = [];
+  api.forEachNodeAfterFilterAndSort((node) => {
+    const row = {};
+    cols.forEach((c, i) => {
+      let v = api.getValue(c, node);
+      if (maskPii) v = maskExportValue(fields[i], v);
+      row[headers[i]] = v === null || v === undefined ? '' : v;
+    });
+    rows.push(row);
+  });
+  const XLSX = await import('xlsx');
+  const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Manager View');
+  XLSX.writeFile(wb, `${base}-${stamp()}.xlsx`);
+  return rows.length;
+}

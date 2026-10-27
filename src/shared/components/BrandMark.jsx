@@ -1,0 +1,45 @@
+import { useBranding } from "@/shared/theme/useBranding";
+import { assetUrl } from "@/shared/theme/branding";
+
+// The client's logo plus the product wordmark. Both come from the client's branding
+// (shared/theme/branding.js); the accent word is the last word of the product name.
+export default function BrandMark({ size = "md", showWordmark = true, role = null, className = "" }) {
+  const branding = useBranding();
+  const dims = {
+    sm: { box: "h-6",  gap: "gap-2",   title: "text-[13px]", chip: "text-[9px]"  },
+    md: { box: "h-7",  gap: "gap-2.5", title: "text-[15px]", chip: "text-[10px]" },
+    lg: { box: "h-12", gap: "gap-3",   title: "text-lg",     chip: "text-[11px]" },
+  }[size];
+
+  const words = String(branding.product_name || "Outbound Dialer").trim().split(/\s+/);
+  const accent = words.length > 1 ? words.pop() : null;
+
+  return (
+    <div className={`flex items-center ${dims.gap} ${className}`}>
+      <img
+        key={branding.logo_url}
+        src={assetUrl(branding.logo_url)}
+        alt={`${branding.name} logo`}
+        className={`${dims.box} w-auto select-none animate-fade-in`}
+        draggable={false}
+      />
+
+      {showWordmark && (
+        <div className="leading-[1.1] flex flex-col gap-0.5">
+          <h1 className={`${dims.title} font-bold tracking-[-0.015em] font-display text-foreground`}>
+            {words.join(" ")} {accent && <span className="text-blue-500">{accent}</span>}
+          </h1>
+          {role && (
+            <span
+              className={`inline-flex w-fit items-center ${dims.chip} font-semibold uppercase tracking-[0.14em]
+                          px-1 py-[1px] rounded
+                          bg-primary/12 text-blue-500`}
+            >
+              {role}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

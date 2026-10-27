@@ -1,0 +1,449 @@
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { isValidPhone, normalizePhone } from "@/features/calls/lib/manualDial";
+import { useDialNumber } from "@/features/calls/hooks/useDialNumber";
+import { useDispatch, useSelector } from "react-redux";
+import { Loader2, PhoneOff, X, MoreHorizontal, Pencil, Calendar, Building2, BadgeInfo, Phone, Mail, FileText } from "lucide-react";
+import { selectCurrentLead } from "@/features/calls/slices/dialSlice";
+import { CALL_STATE, selectCallRouteParams, selectCallState, selectIsCallBusy, selectIsStringeeCall, setCallState } from "@/features/calls/slices/callSlice";
+import { useCallHangupMutation, useGetMetaLeadByPhoneQuery } from "@/services";
+import RawDataCell from "@/features/reporting/components/RawDataCell";
+import { selectMaskPii } from "@/features/auth/slices/authSlice";
+import { maskEmail, maskPhone } from "@/shared/lib/mask";
+import { phoneCountry, flagUrl } from "@/shared/lib/phoneCountry";
+import { hangup as stringeeHangup } from "@/features/calls/lib/stringeePhone";
+// vicidial_list.entry_date arrives as an ISO timestamp through jsonable_encoder.
+// Rendered as "7 Sep 2026, 6:07 pm" — the time matters to an agent deciding how
+// fresh a lead is. Anything unparseable is shown as it came rather than as "—",
+// so a bad value is visible instead of looking like missing data.
+function formatEntryDate(value) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("en-IN", {
+    day: "numeric", month: "short", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+}
+function CountryChip({ country, boxed = false }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-slate-200",
+        boxed ? "rounded-lg border border-white/10 bg-white/5 px-2.5 py-2" : "",
+      ].join(" ")}
+      title={`${country.name} (+${country.callingCode})`}
+    >
+      <img
+        src={flagUrl(country.code)}
+        alt=""
+        width={20}
+        height={15}
+        className="rounded-[2px]"
+        onError={(e) => { e.currentTarget.style.display = "none"; }}
+      />
+      <span>{country.name}</span>
+    </span>
+  );
+}
+
+function CountdownRing({ seconds, total }) {
+  const r = 9;
+  const circ = 2 * Math.PI * r;
+  const frac = Math.max(0, Math.min(1, seconds / total));
+  return (
+    <span className="relative inline-flex h-6 w-6 items-center justify-center text-destructive">
+      <svg viewBox="0 0 24 24" className="absolute inset-0 -rotate-90">
+        <circle cx="12" cy="12" r={r} fill="none" strokeWidth="2" className="stroke-white/10" />
+        <circle
+          cx="12"
+          cy="12"
+          r={r}
+          fill="none"
+          strokeWidth="2"
+          strokeLinecap="round"
+          className="stroke-current transition-[stroke-dashoffset] duration-1000 ease-linear"
+          strokeDasharray={circ}
+          strokeDashoffset={circ * (1 - frac)}
+        />
+      </svg>
+      <span className="text-[10px] font-bold tabular-nums">{seconds}</span>
+    </span>
+  );
+}
+
+const LOCK_SECONDS = 60;
+
+function ContactDetails({inCallLogData}) {
+  const dispatch = useDispatch();
+
+  const lead = useSelector(selectCurrentLead);
+  const maskPii = useSelector(selectMaskPii);
+  const callState = useSelector(selectCallState);
+  const isCallBusy = useSelector(selectIsCallBusy);
+  // {} for a VICIdial call, { call_id } for a Stringee one.
+  const callRouteParams = useSelector(selectCallRouteParams);
+  // Stringee sends no live ringing/answered status, so a Stringee call can be
+  // ended from the moment it is placed — no wait for the log, no 60s lock.
+  const isStringee = useSelector(selectIsStringeeCall);
+  const canEnd = isStringee || inCallLogData;
+  const [callHangup, { isLoading: isHangingUp }] = useCallHangupMutation();
+  // Same dial as the Reporting page's Call button (hooks/useDialNumber).
+  const { dialNumber, isDialing } = useDialNumber();
+  const [notes, setNotes] = useState("");
+  const [manualPhone, setManualPhone] = useState("");
+  const isInCall = callState === CALL_STATE.INCALL;
+  const isEnding = callState === CALL_STATE.ENDING;
+  const isBusy = isHangingUp || callState === CALL_STATE.DIALING;
+
+  // Lock END CALL for the first 60s after the call connects, with a countdown.
+  const isConnected = isInCall && inCallLogData && !isStringee;
+  const [lockSeconds, setLockSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!isConnected) {
+      setLockSeconds(0);
+      return;
+    }
+    setLockSeconds(LOCK_SECONDS);
+    const id = setInterval(() => {
+      setLockSeconds((s) => {
+        if (s <= 1) {
+          clearInterval(id);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isConnected]);
+
+  const isLocked = lockSeconds > 0;
+
+  const callPhone = lead?.phone_number?.replace(/\D/g, "") || null;
+  const { data: metaLead, isFetching: isLoadingMeta } = useGetMetaLeadByPhoneQuery(callPhone, {
+    skip: !isInCall || !callPhone,
+  });
+  const disabledAll = isDialing || isCallBusy;
+  const initials = useMemo(() => {
+    const a = lead?.first_name?.[0] ?? "";
+    const b = lead?.last_name?.[0] ?? "";
+    return (a + b).toUpperCase() || "C";
+  }, [lead]);
+
+  const displayName = useMemo(() => {
+    if (!lead) return "No Active Lead";
+    return `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() || "Unknown";
+  }, [lead]);
+
+  const locationText = useMemo(() => {
+    const city = lead?.city?.trim();
+    return city ? city : "—";
+  }, [lead]);
+
+  const handleManualDial = useCallback(() => dialNumber(manualPhone), [dialNumber, manualPhone]);
+
+  const handleEndCall = async () => {
+    if (!isInCall && !canEnd) return;
+    if (isLocked) return; // ✅ honor the 60s post-connect lock
+
+    dispatch(setCallState(CALL_STATE.ENDING)); // ✅ keep log polling ON
+    try {
+      // {} for VICIdial, { call_id } for Stringee.
+      const hangupArgs = callRouteParams;
+      // Browser-placed Stringee call: drop it in this tab first. A no-op for
+      // every other call.
+      if (isStringee) await stringeeHangup();
+      await (callHangup(hangupArgs).unwrap?.() ?? callHangup(hangupArgs));
+      // DO NOT set IDLE here. Wait for log uniqueid -> dispo popup
+    } catch (e) {
+      dispatch(setCallState(CALL_STATE.INCALL));
+      alert("Failed to end call.");
+    }
+  };
+  const manualHasNumber = isValidPhone(normalizePhone(manualPhone));
+  const manualCountry = useMemo(() => phoneCountry(manualPhone), [manualPhone]);
+  const leadCountry = useMemo(() => phoneCountry(lead?.phone_number), [lead?.phone_number]);
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl border border-white/10
+                 bg-gradient-to-b from-slate-900/70 to-slate-950/80
+                 shadow-[0_30px_120px_rgba(0,0,0,0.55)] transition-smooth"
+    >
+      {/* soft glow like screenshot */}
+      <div className="pointer-events-none absolute inset-0 opacity-70 bg-[radial-gradient(700px_circle_at_15%_0%,rgba(56,189,248,0.16),transparent_55%),radial-gradient(700px_circle_at_90%_10%,rgba(168,85,247,0.14),transparent_55%)]" />
+
+      {/* Header bar */}
+      <div className="relative flex items-center justify-between px-5 py-3 border-b border-white/10">
+        <div className="flex items-center gap-3 text-slate-100">
+          <div className="h-2.5 w-2.5 rounded-full border border-sky-300/40 bg-sky-500/20" />
+          <div className="text-sm font-semibold tracking-wide">Contact Details</div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {manualCountry && <CountryChip country={manualCountry} boxed />}
+          <input
+            value={manualPhone}
+            onChange={(e) => setManualPhone(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !disabledAll && manualHasNumber) handleManualDial();
+            }}
+            placeholder="Manual dial number…"
+            className="w-full md:w-56 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs
+                       text-slate-100 placeholder:text-slate-500
+                       focus:outline-none focus:ring-2 focus:ring-sky-500/25"
+          />
+
+          <button
+            type="button"
+            disabled={disabledAll || !manualHasNumber}
+            onClick={handleManualDial}
+            className={[
+              "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold",
+              "border transition-colors",
+              disabledAll || !manualHasNumber
+                ? "border-white/10 bg-white/5 text-slate-500 cursor-not-allowed"
+                : "border-emerald-600/40 bg-emerald-600/20 text-emerald-200 hover:bg-emerald-600/30 hover:text-emerald-100 active:bg-emerald-600/40",
+            ].join(" ")}
+            title={
+              !manualHasNumber
+                ? "Enter a valid number"
+                : disabledAll
+                ? "Dialing or call busy"
+                : "Call this number"
+            }
+          >
+            {isDialing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Calling…
+              </>
+            ) : (
+              <>
+                <Phone className="h-4 w-4" />
+                Call
+              </>
+            )}
+          </button>
+        </div>
+
+      </div>
+
+      {/* Main */}
+      <div className="relative px-6 py-5">
+        {!lead ? (
+          <div className="text-slate-300 animate-fade-in">
+            No active lead. Click <span className="text-cyan-200 font-semibold">DIAL NEXT</span>.
+          </div>
+        ) : (
+          <div key={lead.lead_id ?? lead.phone_number} className="animate-fade-in">
+            {/* Top identity row */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-5">
+                {/* Avatar */}
+                <div className="relative">
+                  <div className="h-20 w-20 rounded-full border border-white/10 bg-slate-950/25 grid place-items-center text-2xl font-bold text-slate-100">
+                    {initials}
+                  </div>
+                  <div className="absolute -right-1 -bottom-1 h-7 w-7 rounded-full border border-white/10 bg-slate-900/70 grid place-items-center">
+                    <span className="text-xs font-bold text-sky-200">C</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-3xl font-semibold text-slate-100 tracking-wide">
+                      {displayName}
+                    </div>
+
+                    {/* Active badge like screenshot */}
+                    <div className="rounded-full border border-sky-300/25 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-200">
+                      Active
+                    </div>
+
+                    {/* <button className="h-9 w-9 grid place-items-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition">
+                      <Pencil className="w-4 h-4 text-slate-200" />
+                    </button> */}
+                  </div>
+
+                  <div className="mt-1 text-sm text-slate-400">
+                    {locationText}
+                  </div>
+
+                  {/* light "meta" row */}
+                  <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <BadgeInfo className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-400">Lead ID</span>
+                      <span className="text-slate-100 font-semibold">{lead.lead_id}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-400">Phone</span>
+                      <span className="text-slate-100 font-semibold font-mono-nums tracking-wide">
+                        {lead.phone_number ? (maskPii ? maskPhone(lead.phone_number) : lead.phone_number) : "—"}
+                      </span>
+                      {leadCountry && <CountryChip country={leadCountry} />}
+                    </div>
+
+                    {lead.email?.trim() && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-slate-400" />
+                        <span className="text-slate-400">Email</span>
+                        <span className="text-slate-100 font-semibold break-all">
+                          {maskPii ? maskEmail(lead.email.trim()) : lead.email.trim()}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-400">Entry Date</span>
+                      <span className="text-slate-100 font-semibold">{formatEntryDate(lead.entry_date)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-slate-400" />
+                      <span className="text-slate-400">List</span>
+                      <span className="text-slate-100 font-semibold">{lead.list_id ?? "—"}</span>
+                    </div>
+
+                    {isInCall && isLoadingMeta && (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
+                        <span className="text-slate-500 text-xs">Loading lead info…</span>
+                      </div>
+                    )}
+
+                    {isInCall && !isLoadingMeta && metaLead && (
+                      <>
+                        {metaLead.source?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Source</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.source}</span>
+                          </div>
+                        )}
+                        {metaLead.campaign_name?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Campaign</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.campaign_name}</span>
+                          </div>
+                        )}
+                        {metaLead.ad_set_name?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Ad Set</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.ad_set_name}</span>
+                          </div>
+                        )}
+                        {metaLead.ad_name?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Ad</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.ad_name}</span>
+                          </div>
+                        )}
+                        {metaLead.form_name?.trim() && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-400 text-sm">Form</span>
+                            <span className="text-slate-100 font-semibold">{metaLead.form_name}</span>
+                          </div>
+                        )}
+                        {metaLead.raw_fields && (
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-slate-400" />
+                            <span className="text-slate-400">Form Details</span>
+                            <RawDataCell data={metaLead.raw_fields} />
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* No meta_leads row for this number — 186 leads in the two Meta
+                        lists since 13 Jul are in that state, most of them inserted
+                        straight into vicidial_list by something other than the Meta
+                        push. The form ANSWERS only exist in meta_leads and cannot be
+                        recovered, but the delivery chain is on the lead itself:
+                        address1 = form_adset_ad, address2 = campaign_adset_ad_source.
+                        Showing that beats showing nothing, and says plainly why the
+                        answers are absent rather than leaving the agent guessing. */}
+                    {isInCall && !isLoadingMeta && !metaLead && (lead.address1?.trim() || lead.address2?.trim()) && (
+                      <>
+                        {lead.address1?.trim() && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-slate-400 text-sm shrink-0">Form / Ad</span>
+                            <span className="text-slate-100 font-semibold break-all">{lead.address1}</span>
+                          </div>
+                        )}
+                        {lead.address2?.trim() && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-slate-400 text-sm shrink-0">Campaign</span>
+                            <span className="text-slate-100 font-semibold break-all">{lead.address2}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-amber-400/70" />
+                          <span className="text-amber-300/80 text-xs">
+                            No Meta form record for this number — the client's answers were never stored
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right "Hidden" pill (visual only like screenshot) */}
+              {/* <button className="hidden md:flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-slate-200 hover:bg-white/10 transition">
+                <span className="text-sm font-semibold tracking-wide">HIDDEN</span>
+                <span className="text-slate-400">›</span>
+              </button> */}
+            </div>
+
+            {/* Bottom action row like screenshot */}
+            <div className="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex items-center gap-2">
+              </div>
+
+              {/* END CALL (real logic) */}
+              <button
+                onClick={handleEndCall}
+                disabled={!lead || !isInCall || isBusy || callState === CALL_STATE.DISPO || !canEnd || isLocked}
+                className={`rounded-xl border px-5 py-2.5 font-semibold flex items-center justify-center gap-2 transition-smooth active:scale-[0.97]
+                  ${
+                    isLocked
+                      ? "border-destructive/15 bg-destructive/5 text-destructive/70"
+                      : isInCall || isEnding
+                      ? "border-rose-400/20 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15"
+                      : "border-white/10 bg-white/5 text-white/40"
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isLocked ? (
+                  <>
+                    <CountdownRing seconds={lockSeconds} total={LOCK_SECONDS} />
+                    END CALL
+                  </>
+                ) : (
+                  <>
+                    {isEnding || isHangingUp ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <PhoneOff className="w-4 h-4" />
+                    )}
+                    {isEnding ? "ENDING..." : "END CALL"}
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Debug status line (optional) */}
+            <div className="mt-4 text-xs text-white/40">
+              Call State: <span className="text-white/60">{callState}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default memo(ContactDetails);

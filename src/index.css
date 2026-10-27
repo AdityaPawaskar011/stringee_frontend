@@ -1,0 +1,730 @@
+/* Fonts are loaded by index.html (Inter, Space Grotesk, JetBrains Mono). */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark Mode Theme Variables - Deep Blue/Black Dashboard Style */
+    --background: 231 58% 6%;     /* #070B1A */
+    --foreground: 220 40% 98%;    /* near-white */
+
+    --card: 229 56% 13%;          /* #0E1633 */
+    --card-foreground: 220 40% 98%;
+
+    --popover: 229 56% 13%;
+    --popover-foreground: 220 40% 98%;
+
+    /* === Primary Accent === */
+    --primary: 220 100% 59%;      /* #2F7BFF */
+    --primary-foreground: 231 58% 6%;
+
+    /* === Secondary / Muted === */
+    --secondary: 228 49% 15%;     /* slightly lighter than card */
+    --secondary-foreground: 220 40% 98%;
+
+    --muted: 228 49% 15%;
+    --muted-foreground: 220 15% 65%;
+
+    /* === Accent === */
+    --accent: 220 100% 59%;       /* same as primary */
+    --accent-foreground: 220 40% 98%;
+
+    /* === Status Colors === */
+    --destructive: 0 100% 64%;    /* #FF4D4F */
+    --destructive-foreground: 220 40% 98%;
+
+    --status-active: 158 100% 41%; /* #00D084 */
+    --status-waiting: 39 90% 56%;  /* #F5A623 */
+    --status-offline: 220 15% 45%;
+
+    /* === Borders / Inputs === */
+    --border: 220 49% 22%;        /* #1B2A52 */
+    --input: 220 49% 22%;
+    --ring: 220 100% 59%;
+
+    --radius: 0.5rem;
+
+    /* === Brand === electric blue -> cyan, the SGFX arrow colours */
+    --brand-from: 220 100% 59%;   /* #2F7BFF */
+    --brand-via: 205 100% 60%;
+    --brand-to: 186 94% 50%;      /* #08C9E8 */
+    --brand-deep: 224 90% 52%;    /* darker end of the call-to-action gradient */
+    /* Deep brand-tinted panels (lead funnel stages) */
+    --brand-surface-1: 213 52% 24%;   /* #1e3a5f */
+    --brand-surface-2: 214 69% 16%;   /* #0d2847 */
+    --grid-foreground: 225 69% 88%;   /* #cbd5f5, AG Grid cell text */
+    /* Page-scoped light mode (Manager View / Reporting / DoubleTick) and its header bar.
+       branding.js re-derives these from a client's colours. */
+    --scope-light-primary: 212 72% 45%;
+    --scope-head-light: 218 44% 18%;   /* navy header bar */
+    --scope-accent-light: 168 72% 40%; /* teal live strip */
+    --scope-accent-dark: 158 100% 41%;
+
+    /* === Chart palette === one categorical order for every chart */
+    --chart-1: 220 100% 62%;      /* blue   */
+    --chart-2: 172 76% 45%;       /* teal   */
+    --chart-3: 262 83% 68%;       /* violet */
+    --chart-4: 39 92% 56%;        /* amber  */
+    --chart-5: 346 84% 62%;       /* rose   */
+
+    /* === Tailwind palettes as variables ===
+       tailwind.config.js points blue / sky / indigo / cyan / slate at these, so the
+       ~870 hard-coded `text-blue-500`-style classes follow the client's brand
+       (shared/theme/branding.js regenerates them from the logo colours). The values
+       here are Tailwind's own, so the default brand looks exactly as before. */
+    --tw-blue-50: 214 100% 96.9%;
+    --tw-blue-100: 214 94.6% 92.7%;
+    --tw-blue-200: 213 96.9% 87.3%;
+    --tw-blue-300: 212 96.4% 78.4%;
+    --tw-blue-400: 213 93.9% 67.8%;
+    --tw-blue-500: 217 91.2% 59.8%;
+    --tw-blue-600: 221 83.2% 53.3%;
+    --tw-blue-700: 224 76.3% 48%;
+    --tw-blue-800: 226 70.7% 40.2%;
+    --tw-blue-900: 224 64.3% 32.9%;
+    --tw-blue-950: 226 57% 21%;
+    --tw-sky-50: 204 100% 97.1%;
+    --tw-sky-100: 204 93.8% 93.7%;
+    --tw-sky-200: 201 94.4% 86.1%;
+    --tw-sky-300: 199 95.5% 73.9%;
+    --tw-sky-400: 198 93.2% 59.6%;
+    --tw-sky-500: 199 88.7% 48.4%;
+    --tw-sky-600: 200 98% 39.4%;
+    --tw-sky-700: 201 96.3% 32.2%;
+    --tw-sky-800: 201 90% 27.5%;
+    --tw-sky-900: 202 80.3% 23.9%;
+    --tw-sky-950: 204 80.2% 15.9%;
+    --tw-indigo-50: 226 100% 96.7%;
+    --tw-indigo-100: 226 100% 93.9%;
+    --tw-indigo-200: 228 96.5% 88.8%;
+    --tw-indigo-300: 230 93.5% 81.8%;
+    --tw-indigo-400: 234 89.5% 73.9%;
+    --tw-indigo-500: 239 83.5% 66.7%;
+    --tw-indigo-600: 243 75.4% 58.6%;
+    --tw-indigo-700: 245 57.9% 50.6%;
+    --tw-indigo-800: 244 54.5% 41.4%;
+    --tw-indigo-900: 242 47.4% 34.3%;
+    --tw-indigo-950: 244 47.1% 20%;
+    --tw-cyan-50: 183 100% 96.3%;
+    --tw-cyan-100: 185 95.9% 90.4%;
+    --tw-cyan-200: 186 93.5% 81.8%;
+    --tw-cyan-300: 187 92.4% 69%;
+    --tw-cyan-400: 188 85.7% 53.3%;
+    --tw-cyan-500: 189 94.5% 42.7%;
+    --tw-cyan-600: 192 91.4% 36.5%;
+    --tw-cyan-700: 193 82.3% 31%;
+    --tw-cyan-800: 194 69.6% 27.1%;
+    --tw-cyan-900: 196 63.6% 23.7%;
+    --tw-cyan-950: 197 78.9% 14.9%;
+    --tw-slate-50: 210 40% 98%;
+    --tw-slate-100: 210 40% 96.1%;
+    --tw-slate-200: 214 31.8% 91.4%;
+    --tw-slate-300: 213 26.8% 83.9%;
+    --tw-slate-400: 215 20.2% 65.1%;
+    --tw-slate-500: 215 16.3% 46.9%;
+    --tw-slate-600: 215 19.3% 34.5%;
+    --tw-slate-700: 215 25% 26.7%;
+    --tw-slate-800: 217 32.6% 17.5%;
+    --tw-slate-900: 222 47.4% 11.2%;
+    --tw-slate-950: 229 84% 4.9%;
+
+    /* === Fonts === */
+    --font-sans: 'Inter', sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+}
+@layer utilities {
+  /* Firefox */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  /* Chrome / Edge / Safari */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary));
+  }
+  .scrollbar-auto-hide::-webkit-scrollbar-thumb {
+    background-color: transparent;
+  }
+  .scrollbar-auto-hide:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+  }
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20;
+    font-family: var(--font-sans);
+    /* Faint brand light from the top corners; fixed so it doesn't scroll with long pages. */
+    background-image:
+      radial-gradient(900px circle at 0% 0%, hsl(var(--brand-from) / 0.07), transparent 60%),
+      radial-gradient(700px circle at 100% 0%, hsl(var(--brand-to) / 0.05), transparent 55%);
+    background-attachment: fixed;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply tracking-tight;
+  }
+
+  /* Scrollbar Styling for Dashboard Tables */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-700 rounded-full hover:bg-slate-600 transition-colors;
+  }
+}
+
+/* Utilities */
+@layer utilities {
+  .font-mono-nums {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .glass-card {
+    @apply bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 shadow-xl;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px currentColor;
+  }
+
+  /* ── Brand surfaces ── */
+  .text-gradient-brand {
+    background-image: linear-gradient(90deg, hsl(var(--brand-from)), hsl(var(--brand-via)) 45%, hsl(var(--brand-to)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .bg-gradient-brand {
+    background-image: linear-gradient(135deg, hsl(var(--brand-from)), hsl(var(--brand-to)));
+  }
+
+  /* Primary call-to-action: brand gradient, white label, soft glow. */
+  .btn-brand {
+    @apply inline-flex items-center justify-center gap-2 rounded-md font-semibold text-white;
+    /* .transition-smooth lives outside @layer, so @apply cannot reach it. */
+    transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out), filter 200ms var(--ease-out);
+    background-image: linear-gradient(135deg, hsl(var(--brand-from)), hsl(var(--brand-deep)));
+    box-shadow: 0 8px 24px -10px hsl(var(--brand-from) / 0.75), inset 0 1px 0 hsl(0 0% 100% / 0.15);
+  }
+  .btn-brand:hover:not(:disabled) {
+    box-shadow: 0 10px 28px -8px hsl(var(--brand-from) / 0.9), inset 0 1px 0 hsl(0 0% 100% / 0.2);
+    filter: brightness(1.06);
+  }
+  .btn-brand:active:not(:disabled) { transform: scale(0.99); }
+  .btn-brand:disabled { @apply cursor-not-allowed opacity-50; }
+
+  /* Raised panel: card tint with a light top edge, the base for every section card. */
+  .surface {
+    @apply rounded-xl border border-border;
+    background-image: linear-gradient(180deg, hsl(var(--card) / 0.85), hsl(var(--card) / 0.55));
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.04), 0 12px 32px -16px hsl(0 0% 0% / 0.6);
+  }
+
+  /* Icon tile used in page headers and KPI cards. */
+  .icon-tile {
+    @apply grid place-items-center rounded-lg text-white;
+    background-image: linear-gradient(135deg, hsl(var(--brand-from)), hsl(var(--brand-to)));
+    box-shadow: 0 6px 18px -8px hsl(var(--brand-from) / 0.8);
+  }
+}
+
+
+.dark-datepicker .react-datepicker {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+}
+
+.dark-datepicker .react-datepicker__header {
+  background-color: hsl(var(--secondary));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.dark-datepicker .react-datepicker__current-month,
+.dark-datepicker .react-datepicker__day-name,
+.dark-datepicker .react-datepicker__time-name {
+  color: hsl(var(--foreground));
+  font-weight: 500;
+}
+
+.dark-datepicker .react-datepicker__day {
+  color: hsl(var(--muted-foreground));
+  border-radius: var(--radius);
+  transition: background-color 0.15s ease;
+}
+
+.dark-datepicker .react-datepicker__day:hover {
+  background-color: hsl(var(--secondary));
+}
+
+.dark-datepicker .react-datepicker__day--selected,
+.dark-datepicker .react-datepicker__day--keyboard-selected {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.dark-datepicker .react-datepicker__day--today {
+  border: 1px solid hsl(var(--primary));
+}
+
+.dark-datepicker .react-datepicker__day--disabled {
+  color: hsl(var(--status-offline));
+  cursor: not-allowed;
+}
+
+.dark-datepicker .react-datepicker__navigation-icon::before {
+  border-color: hsl(var(--foreground));
+}
+
+.dark-datepicker .react-datepicker__triangle {
+  display: none;
+}
+
+/* ───────── Multi-month range popover (DoubleTick "Activity period") ─────────
+   react-datepicker lays months out with `float: left` and gives its children slot a
+   fixed narrow width, which made two months stack vertically and pushed the typed
+   From/To fields off-screen.
+
+   Grid rather than flex on purpose: the footer needs to span the full width, and a
+   percentage width inside a *wrapping flex* container is circular — the browser
+   resolves it by collapsing the popover back to one column. */
+.dt-datepicker .react-datepicker {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-items: start;
+}
+
+.dt-datepicker .react-datepicker__month-container {
+  float: none;
+}
+
+/* Screen-reader-only node; keep it out of the grid flow. */
+.dt-datepicker .react-datepicker__aria-live {
+  position: absolute;
+}
+
+.dt-datepicker .react-datepicker__children-container {
+  grid-column: 1 / -1;
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 640px) {
+  .dt-datepicker .react-datepicker {
+    grid-template-columns: max-content;
+  }
+}
+/* ───────── Motion system ─────────
+   Curves:
+   - --ease-out   : Linear/Vercel-style decel; default for entrances
+   - --ease-spring: gentle overshoot for emphasis
+   Durations follow a 120/180/240/320 scale.
+*/
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.24s var(--ease-out) both;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.36s var(--ease-out) both;
+}
+
+@keyframes fade-in-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.32s var(--ease-out) both;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.32s var(--ease-out) both;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.32s var(--ease-out) both;
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.22s var(--ease-out) both;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.32s var(--ease-spring) both;
+}
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(1);    opacity: 0.55; }
+  50%      { transform: scaleY(0.45); opacity: 0.95; }
+}
+
+.animate-wave {
+  animation: wave 1.8s ease-in-out infinite;
+  transform-origin: bottom;
+  will-change: transform, opacity;
+}
+
+@keyframes trail {
+  0%   { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-trail {
+  animation: trail 2.6s linear infinite;
+  will-change: stroke-dashoffset;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: 0.55;transform: scale(0.85); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2.4s ease-in-out infinite;
+}
+
+/* Skeleton: low-amplitude pulse that doesn't strobe.
+   Use on neutral surfaces; keep alongside .skeleton (see below). */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Inline shimmer utility used inside skeleton blocks. */
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--foreground) / 0.06) 45%,
+    hsl(var(--foreground) / 0.10) 50%,
+    hsl(var(--foreground) / 0.06) 55%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s linear infinite;
+  pointer-events: none;
+}
+
+/* Skeleton base — pair with rounded/height utilities.
+   Keeps a soft surface tint and the shimmer sweep above. */
+.skeleton {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--card) / 0.6),
+    hsl(var(--card) / 0.4)
+  );
+  border: 1px solid hsl(var(--border) / 0.5);
+  position: relative;
+  overflow: hidden;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--foreground) / 0.05) 45%,
+    hsl(var(--foreground) / 0.08) 50%,
+    hsl(var(--foreground) / 0.05) 55%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s linear infinite;
+  pointer-events: none;
+}
+
+/* Stagger helper — wrap a group with .stagger-children and direct children
+   fade-in-up with a 60ms cascade. Limited to 12 to keep CSS small. */
+.stagger-children > * {
+  animation: fade-in-up 0.42s var(--ease-out) both;
+}
+.stagger-children > *:nth-child(1)  { animation-delay: 0ms;   }
+.stagger-children > *:nth-child(2)  { animation-delay: 60ms;  }
+.stagger-children > *:nth-child(3)  { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4)  { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5)  { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6)  { animation-delay: 300ms; }
+.stagger-children > *:nth-child(7)  { animation-delay: 360ms; }
+.stagger-children > *:nth-child(8)  { animation-delay: 420ms; }
+.stagger-children > *:nth-child(9)  { animation-delay: 480ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 540ms; }
+.stagger-children > *:nth-child(11) { animation-delay: 600ms; }
+.stagger-children > *:nth-child(12) { animation-delay: 660ms; }
+
+/* Hover lift — subtle elevation cue for cards/buttons.
+   `transition-smooth` is the project-wide motion default. */
+.transition-smooth {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-timing-function: var(--ease-out);
+  transition-duration: 200ms;
+}
+.hover-lift {
+  transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out), border-color 220ms var(--ease-out);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+/* Global focus ring — keyboard users only.
+   Scoped to explicit interactive elements; ag-Grid cells use [tabindex] and are intentionally skipped. */
+:where(button, a, input, select, textarea, [role="button"]):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.65);
+}
+
+/* Browser autofill — preserve dark theme over Chrome/Edge/Safari yellow-white default */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+select:-webkit-autofill,
+textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px hsl(var(--card)) inset !important;
+  box-shadow: 0 0 0 1000px hsl(var(--card)) inset !important;
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+  caret-color: hsl(var(--foreground));
+  border-color: hsl(var(--border)) !important;
+  transition: background-color 9999s ease-in-out 0s, color 9999s ease-in-out 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave,
+  .animate-trail,
+  .animate-shimmer,
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-fade-in-down,
+  .animate-scale-in,
+  .animate-pop-in,
+  .animate-pulse-slow,
+  .skeleton::after,
+  .animate-shimmer::after,
+  .stagger-children > * {
+    animation: none !important;
+  }
+  .hover-lift:hover { transform: none !important; }
+}
+.active-call-row .ag-cell {
+  background: rgba(34, 197, 94, 0.12) !important;
+}
+
+.active-call-row:hover .ag-cell {
+  background: rgba(34, 197, 94, 0.18) !important;
+}
+
+/* "Meta Quotes" lead-source rows — subtle amber flag (theme token). */
+.meta-quotes-row .ag-cell {
+  background: hsl(var(--status-waiting) / 0.10) !important;
+}
+
+.meta-quotes-row:hover .ag-cell {
+  background: hsl(var(--status-waiting) / 0.16) !important;
+}
+
+/* Calls carried by Stringee: Stringee brand gradient (blue → purple → orange, see
+   shared/lib/stringeeBrand.js) across the row, with a Stringee-red edge. Cells are
+   cleared so the row's gradient shows through them. */
+.ag-row.stringee-row {
+  background: linear-gradient(90deg, #2196F32E 0%, #673AB724 50%, #FF57221F 100%) !important;
+  box-shadow: inset 3px 0 0 #C50A0A;
+}
+
+.ag-row.stringee-row:hover {
+  background: linear-gradient(90deg, #2196F347 0%, #673AB738 50%, #FF572230 100%) !important;
+}
+
+.stringee-row .ag-cell {
+  background: transparent !important;
+}
+
+/* AG Grid tooltip — the grid theme uses a transparent backgroundColor, which the
+   default .ag-tooltip inherits. Give it a solid popover surface so it's readable. */
+.ag-tooltip {
+  background-color: hsl(var(--popover)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px hsl(0 0% 0% / 0.4);
+  max-width: 320px;
+  white-space: normal;
+}
+/* Native form chrome — render select dropdown panel, arrow, scrollbar in dark */
+select,
+input,
+textarea {
+  color-scheme: dark;
+}
+
+/* Themed <option> items in any native select */
+select option {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  padding: 8px 10px;
+}
+
+select option:disabled {
+  color: hsl(var(--muted-foreground));
+}
+
+select option:checked,
+select option:hover,
+select option:focus {
+  background: linear-gradient(0deg, hsl(var(--primary)), hsl(var(--primary))) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+/* ───────── Page-scoped theming (Manager View + Reporting) ─────────
+   The app is dark-only (tokens on :root). These pages wrap their content in
+   `.mv-scope`/`.rv-scope` with `data-theme="light|dark"`; overriding tokens here re-themes every
+   descendant that styles via hsl(var(--token)) — no component edits needed. Page-only header-bar
+   tokens (--mv-head/-fg/-accent) give the "navy header + teal accent" spreadsheet look. The
+   reporting scope (`.rv-scope`) reuses the same definitions (portal popovers also carry it). */
+.mv-scope,
+.rv-scope,
+.dt-scope {
+  /* dark defaults — the rest of the tokens inherit the app :root (dark) */
+  --mv-head: var(--secondary);
+  --mv-head-fg: var(--foreground);
+  --mv-accent: var(--scope-accent-dark);
+}
+
+.mv-scope[data-theme="light"],
+.rv-scope[data-theme="light"],
+.dt-scope[data-theme="light"] {
+  color-scheme: light;
+  --background: 210 40% 97%;
+  --foreground: 222 44% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 44% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 44% 14%;
+  --primary: var(--scope-light-primary);
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 95%;
+  --secondary-foreground: 222 44% 14%;
+  --muted: 210 40% 95%;
+  --muted-foreground: 220 10% 42%;
+  --accent: var(--scope-light-primary);
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 68% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --status-active: 120 100% 26%;
+  --status-waiting: 40 96% 44%;
+  --status-offline: 220 9% 60%;
+  --border: 214 28% 87%;
+  --input: 214 28% 84%;
+  --ring: var(--scope-light-primary);
+  /* header bars: navy + teal accent by default; a client's own colours otherwise */
+  --mv-head: var(--scope-head-light);
+  --mv-head-fg: 0 0% 100%;
+  --mv-accent: var(--scope-accent-light);
+}
+
+/* Native form chrome follows the page theme (overrides the global dark color-scheme). */
+.mv-scope[data-theme="light"] select,
+.mv-scope[data-theme="light"] input,
+.mv-scope[data-theme="light"] textarea,
+.rv-scope[data-theme="light"] select,
+.rv-scope[data-theme="light"] input,
+.rv-scope[data-theme="light"] textarea,
+.dt-scope[data-theme="light"] select,
+.dt-scope[data-theme="light"] input,
+.dt-scope[data-theme="light"] textarea {
+  color-scheme: light;
+}
+
+/* Manager View section header bar (spreadsheet-style). */
+.mv-head-bar {
+  background-color: hsl(var(--mv-head));
+  color: hsl(var(--mv-head-fg));
+}
+
+/* Light-mode react-datepicker popper (companion to .dark-datepicker; default CSS is already light,
+   these just align the accent/selection with the page primary). */
+.light-datepicker .react-datepicker__day--selected,
+.light-datepicker .react-datepicker__day--keyboard-selected {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.light-datepicker .react-datepicker__day--today {
+  border: 1px solid hsl(var(--primary));
+}
