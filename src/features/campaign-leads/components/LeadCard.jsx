@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Loader2, Pause, Play, ChevronsRight, Infinity, Trash2 } from 'lucide-react';
+import { Loader2, Pause, Play, ChevronsRight, Infinity as InfinityIcon, Trash2 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ConditionChip from './ConditionChip';
 import { routeStatus, fmtDate } from '../utils';
@@ -26,7 +26,10 @@ function LeadCard({ lead, onToggle, onSync, onDelete, toggling, deleting }) {
               <span className="text-[10px] text-slate-600 font-mono">#{lead.id}</span>
             </div>
             <div className="text-sm font-semibold text-slate-100 truncate">{lead.rule_name}</div>
-            <div className="text-[11px] text-slate-500 font-mono truncate">→ {lead.destination_campaign}</div>
+            <div className="text-[11px] text-slate-500 font-mono truncate">
+              → {lead.destination_campaign}
+              {lead.destination_list_name && <span className="text-slate-600"> / {lead.destination_list_name}</span>}
+            </div>
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
@@ -73,7 +76,7 @@ function LeadCard({ lead, onToggle, onSync, onDelete, toggling, deleting }) {
             : (
               <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] border
                 bg-emerald-500/10 border-emerald-500/25 text-emerald-300">
-                <Infinity className="w-2.5 h-2.5" /> realtime · no expiry
+                <InfinityIcon className="w-2.5 h-2.5" /> realtime · no expiry
               </span>
             )
           }

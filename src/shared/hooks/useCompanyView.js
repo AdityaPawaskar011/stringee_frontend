@@ -10,6 +10,7 @@ export const COMPANY_SCOPED_PATHS = [
   '/settings/integrations', '/settings/dispositions', '/whatsapp-sessions', '/whatsapp-login',
   '/whatsapp-automation', '/wa-api', '/email-templates', '/agent-mail', '/stringee-agents',
   '/leads-upload', '/gsm-status', '/settings/call-quality',
+  '/admin/users', '/admin/campaigns', '/admin/lists', '/admin/leads', '/admin/dnc',
 ];
 
 // The platform admin's current company view, re-rendered when it changes in this tab.

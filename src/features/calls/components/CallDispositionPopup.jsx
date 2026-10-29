@@ -1,18 +1,17 @@
 import React, { lazy, Suspense, useMemo, useState } from "react";
-import { dialErrorMessage } from "@/features/calls/lib/dialError";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import { Mail, MessageCircle, MessageSquare } from "lucide-react";
-import { useSubmitStatusMutation, useDialNextMutation, useSendMessageMutation, useGetDispositionsQuery } from "@/services";
-import {  CALL_STATE, selectCallRouteParams, selectIsCallBusy, setCallState ,selectIsCallbackDial, setCurrentCallFromDial, clearCurrentCall} from "@/features/calls/slices/callSlice";
-import { clearCurrentLead, selectCurrentLead, setCurrentLead } from "@/features/calls/slices/dialSlice";
+import { useSubmitStatusMutation, useSendMessageMutation, useGetDispositionsQuery } from "@/services";
+import { CALL_STATE, selectCallRouteParams, setCallState, clearCurrentCall } from "@/features/calls/slices/callSlice";
+import { clearCurrentLead, selectCurrentLead } from "@/features/calls/slices/dialSlice";
 import { selectIntegrations, selectMaskPii } from "@/features/auth/slices/authSlice";
 import { maskEmail } from "@/shared/lib/mask";
 import { useToast } from "@/shared/hooks/useToast";
-import { tr } from "date-fns/locale";
+import { dialErrorMessage, hasCallId } from "@/features/calls/lib/dialError";
+import { TONE } from "@/features/calls/lib/dispositionTone";
 
 const AgentMailModal = lazy(() => import("@/features/agent-mail/AgentMailModal"));
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -20,39 +19,25 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // The company's own list (Settings → Dispositions, api/routers/dispositions.py):
 // { value: status code, label, color, is_callback }. Selected-state colours per tone.
-const TONE = {
-  green:  "bg-emerald-500/15 border-emerald-400/30 text-emerald-100",
-  blue:   "bg-sky-500/12 border-sky-300/25 text-sky-100",
-  amber:  "bg-amber-500/15 border-amber-400/30 text-amber-100",
-  rose:   "bg-rose-500/15 border-rose-400/30 text-rose-100",
-  violet: "bg-violet-500/15 border-violet-400/30 text-violet-100",
-  cyan:   "bg-cyan-500/15 border-cyan-400/30 text-cyan-100",
-  slate:  "bg-sky-500/12 border-sky-300/25 text-sky-100",
-};
 
-// ✅ yyyy dd mm time (HH:mm:ss)
+// The callback time as ISO-8601 in the agent's own clock, WITH its UTC offset
+// (e.g. 2026-11-02T15:30:00+05:30), so the server stores the moment the agent picked.
 const formatCallbackDateTime = (date) => {
   if (!date) return null;
   const pad = (n) => String(n).padStart(2, "0");
-  const yyyy = date.getFullYear();
-  const dd = pad(date.getDate());
-  const mm = pad(date.getMonth() + 1);
-  const HH = pad(date.getHours());
-  const MM = pad(date.getMinutes());
-  const SS = pad(date.getSeconds());
-  return `${yyyy}-${mm}-${dd}+${HH}:${MM}:${SS}`;
+  const off = -date.getTimezoneOffset();
+  const sign = off >= 0 ? "+" : "-";
+  const tz = `${sign}${pad(Math.floor(Math.abs(off) / 60))}:${pad(Math.abs(off) % 60)}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}${tz}`;
 };
 
 export default function CallDispositionPopup({ closeDispo, leadName = "Customer" }) {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { success, error, info } = useToast();
-  const isCallBusy = useSelector(selectIsCallBusy);
-  // {} for a VICIdial call, { call_id } for a Stringee one.
+  const { success, error } = useToast();
+  // { call_id } or { ref_id } of the call being dispositioned.
   const callRouteParams = useSelector(selectCallRouteParams);
-const isCallbackDialed = useSelector(selectIsCallbackDial)
   const [submitStatus, { isLoading: submitting }] = useSubmitStatusMutation();
-  const [dialNext, { isLoading: isDialing }] = useDialNextMutation();
 const [sendMessage] = useSendMessageMutation();
 // SMS / email buttons only when the company has its own account set up.
 const integrations = useSelector(selectIntegrations);
@@ -113,7 +98,7 @@ const integrations = useSelector(selectIntegrations);
         return};
       await sendMessage(phoneNumber).unwrap();
       success("SMS sent successfully");
-    } catch (err) {
+    } catch {
       error("Failed to send SMS");
     }
   };
@@ -128,8 +113,6 @@ const integrations = useSelector(selectIntegrations);
     const payload = {
       status: selectedStatus.value,
       callback_comments: callbackComments.trim(),
-      // {} for a VICIdial call, so this stays the exact request it was.
-      // { call_id } dispositions the Stringee call instead.
       ...callRouteParams,
     };
 
@@ -145,6 +128,10 @@ const integrations = useSelector(selectIntegrations);
 
   const submitOnly = async () => {
     if (!canSubmit) return false;
+    // /submit_status needs the call's id (422 without one).
+    if (!hasCallId(callRouteParams)) {
+      throw { status: 422, data: { detail: "This call has no id yet - wait a moment and try again." } };
+    }
 
     await submitStatus(buildPayload()).unwrap();
 
@@ -169,64 +156,8 @@ const integrations = useSelector(selectIntegrations);
       closeDispo?.();
     } catch (e) {
       console.error(e);
-      alert("Failed to submit disposition.");
+      alert(dialErrorMessage(e, "Failed to submit disposition."));
     }
-  };
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  const handleWrapAndNext = async () => {
-    try {
-      const ok = await submitOnly();
-      if (!ok) return;
-      await sleep(5000);
-      dispatch(setCallState(CALL_STATE.DIALING));
-      const res = await dialNext({}).unwrap();
-
-      if (res?.vicidial_response?.toLowerCase?.().includes("error")) {
-        alert(res.vicidial_response);
-        dispatch(setCallState(CALL_STATE.IDLE));
-        return;
-      }
-
-      dispatch(setCurrentCallFromDial(res));
-      dispatch(setCurrentLead(res?.details ?? null));
-      dispatch(setCallState(CALL_STATE.INCALL));
-      // navigate("/call");
-      // await sleep(5000);
-      closeDispo?.();
-    } catch (e) {
-      console.error(e);
-      dispatch(setCallState(CALL_STATE.IDLE));
-      alert(dialErrorMessage(e, "Failed to wrap & dial next."));
-    }
-  };
-
-  // UI helpers
-  const TopTabs = [
-    { label: "Interested", value: "IN", tone: "green" },
-    { label: "Not Interested", value: "NI", tone: "slate" },
-    { label: "RNR", value: "RNR", tone: "slate" },
-    { label: "Callback", value: "CBR", tone: "blue" },
-  ];
-
-  const tabClass = (active, tone) => {
-    const base =
-      "w-full rounded-lg px-4 py-2 text-sm font-medium border transition " +
-      "bg-slate-950/25 hover:bg-slate-950/40 border-white/10 text-slate-200";
-    if (!active) return base;
-
-    if (tone === "green")
-      return "w-full rounded-lg px-4 py-2 text-sm font-semibold border transition " +
-        "bg-emerald-500/15 border-emerald-400/25 text-emerald-100 shadow-[0_0_24px_rgba(16,185,129,0.15)]";
-    if (tone === "blue")
-      return "w-full rounded-lg px-4 py-2 text-sm font-semibold border transition " +
-        "bg-sky-500/15 border-sky-300/25 text-sky-100 shadow-[0_0_24px_rgba(56,189,248,0.15)]";
-
-    return "w-full rounded-lg px-4 py-2 text-sm font-semibold border transition " +
-      "bg-indigo-500/15 border-indigo-300/25 text-indigo-100 shadow-[0_0_24px_rgba(99,102,241,0.15)]";
-  };
-  const handleCloseDispo = () => {
-    closeDispo?.();
-    dispatch(setCallState(CALL_STATE.IDLE));
   };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-4 animate-fade-in">
@@ -250,19 +181,6 @@ const integrations = useSelector(selectIntegrations);
         </div>
 
         <div className="px-6 py-5">
-          {/* Top tab row (like screenshot) */}
-          {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {TopTabs.map((t) => (
-              <button
-                key={t.value}
-                onClick={() => setSelectedStatus(DISPOSITIONS.find((x) => x.value === t.value))}
-                className={tabClass(selectedStatus?.value === t.value, t.tone)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div> */}
-
           {/* Notes */}
           <div className="mt-2">
             <div className="text-sm text-slate-300 mb-2">
@@ -419,7 +337,7 @@ const integrations = useSelector(selectIntegrations);
   {/* Submit */}
   <button
     onClick={handleSubmitAndClose}
-    disabled={!canSubmit || submitting || isDialing}
+    disabled={!canSubmit || submitting}
     className="w-full md:w-1/2 rounded-xl border border-white/10 bg-slate-950/20 px-4 py-3
                text-slate-100 font-semibold hover:bg-slate-950/35 transition disabled:opacity-50"
   >

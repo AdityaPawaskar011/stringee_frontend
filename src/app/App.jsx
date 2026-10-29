@@ -34,6 +34,11 @@ const IntegrationsPage   = lazy(() => import('@/features/settings/IntegrationsPa
 const DispositionsPage   = lazy(() => import('@/features/settings/DispositionsPage'));
 const CompaniesPage      = lazy(() => import('@/features/platform/CompaniesPage'));
 const CallQualityPage    = lazy(() => import('@/features/settings/CallQualityPage'));
+const AdminUsersPage     = lazy(() => import('@/features/admin/UsersPage'));
+const AdminCampaignsPage = lazy(() => import('@/features/admin/CampaignsPage'));
+const AdminListsPage     = lazy(() => import('@/features/admin/ListsPage'));
+const AdminLeadsPage     = lazy(() => import('@/features/admin/LeadsPage'));
+const AdminDncPage       = lazy(() => import('@/features/admin/DncPage'));
 const SelectivePage      = lazy(() => import('@/pages/SelectivePage'));
 const NotFoundPage       = lazy(() => import('@/pages/NotFoundPage'));
 
@@ -64,10 +69,22 @@ function App() {
                   <Route path="/double-tick"       element={<DoubleTickPage />} />
                   <Route path="/gsm-status"        element={<GsmStatusPage />} />
                   <Route path="/stringee-agents"   element={<StringeeAgentsPage />} />
+                </Route>
+
+                {/* Company settings and dialer setup: company admins only. */}
+                <Route element={<PrivateRoute allowedAdmin={true} requireCompanyAdmin />}>
                   <Route path="/settings/integrations" element={<IntegrationsPage />} />
                   <Route path="/settings/dispositions" element={<DispositionsPage />} />
-                  <Route path="/platform/companies" element={<CompaniesPage />} />
                   <Route path="/settings/call-quality" element={<CallQualityPage />} />
+                  <Route path="/admin/users"     element={<AdminUsersPage />} />
+                  <Route path="/admin/campaigns" element={<AdminCampaignsPage />} />
+                  <Route path="/admin/lists"     element={<AdminListsPage />} />
+                  <Route path="/admin/leads"     element={<AdminLeadsPage />} />
+                  <Route path="/admin/dnc"       element={<AdminDncPage />} />
+                </Route>
+
+                <Route element={<PrivateRoute allowedAdmin={true} requirePlatformAdmin />}>
+                  <Route path="/platform/companies" element={<CompaniesPage />} />
                 </Route>
 
                 <Route element={<PrivateRoute allowedAdmin={false} />}>

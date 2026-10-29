@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useGetAgentWiseLeadQuery } from "@/services";
 import { useDispatch, useSelector } from "react-redux";
 import { selectFormNameFilter, setFormNameFilter, setIsAvailableLeads } from "@/features/calls/slices/dialSlice";
-import { selectCampaingName } from "@/features/auth/slices/authSlice";
 import { SkeletonAvatarRow } from "@/shared/components/ui";
 
 
@@ -64,17 +63,12 @@ const QUEUE_STYLE = {
   },
 };
 
-const HOT_METAL_CAMPAIGN = "HotMetaleads";
-
 export default function AgentLeadsPanel() {
-  const campaignName = useSelector(selectCampaingName);
-  const isHotMetal = campaignName === HOT_METAL_CAMPAIGN;
-
   const selectedFormName = useSelector(selectFormNameFilter);
 
 
   // Build query arg — only pass form_name when a value is selected
-  const queryArg = isHotMetal && selectedFormName
+  const queryArg = selectedFormName
     ? { form_name: selectedFormName }
     : undefined;
 
@@ -84,26 +78,21 @@ export default function AgentLeadsPanel() {
   });
 
   const dispatch = useDispatch();
-  const leads = data?.data ?? [];
+  const leads = React.useMemo(() => data?.data ?? [], [data]);
 
-  // Derive unique last names from the FULL (unfiltered) list so the dropdown
-  // always shows all options regardless of the current selection.
-  // If you'd rather derive them from the current `leads`, just swap the source.
-  const uniqueLastNames = React.useMemo(() => {
+  // The forms (lead source labels) among the leads on screen; the selected one is
+  // kept in the list so it can be cleared.
+  const formNames = React.useMemo(() => {
     const names = leads
-      .map((l) => safeText(l?.last_name))
+      .map((l) => safeText(l?.form_name))
       .filter((n) => n !== "—");
+    if (selectedFormName) names.push(selectedFormName);
     return [...new Set(names)].sort();
-  }, [leads]);
+  }, [leads, selectedFormName]);
 
   useEffect(() => {
     dispatch(setIsAvailableLeads(leads.length > 0));
   }, [leads.length, dispatch]);
-
-  // Reset selection when campaign changes away from hotMetaleads
-  useEffect(() => {
-    if (!isHotMetal) dispatch(setFormNameFilter(""));
-  }, [isHotMetal,dispatch]);
 
   if (isLoading) {
     return (
@@ -135,8 +124,8 @@ export default function AgentLeadsPanel() {
           <div className="text-sm font-semibold text-white">Leads</div>
 
           <div className="flex items-center gap-2">
-            {/* Dropdown — only for hotMetaleads campaign */}
-            {isHotMetal && (
+            {/* Form filter: shown once the leads carry a source form */}
+            {formNames.length > 0 && (
               <select
                 value={selectedFormName}
                 onChange={(e) => dispatch(setFormNameFilter(e.target.value))}
@@ -148,8 +137,8 @@ export default function AgentLeadsPanel() {
                   max-w-[160px] truncate
                 "
               >
-                <option value="">All Meta Campaigns</option>
-                {uniqueLastNames.map((name) => (
+                <option value="">All forms</option>
+                {formNames.map((name) => (
                   <option key={name} value={name}>
                     {name}
                   </option>
@@ -176,7 +165,6 @@ export default function AgentLeadsPanel() {
         ) : (
           leads.map((lead) => {
             const fullName = [
-              safeText(lead?.title) !== "—" ? safeText(lead?.title) : null,
               safeText(lead?.first_name) !== "—" ? safeText(lead?.first_name) : null,
               safeText(lead?.last_name) !== "—" ? safeText(lead?.last_name) : null,
             ]
@@ -206,8 +194,6 @@ export default function AgentLeadsPanel() {
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
                     <span>{safeText(lead?.city)}</span>
-                    <span className="text-slate-600">•</span>
-                    <span>{safeText(lead?.country_code)}</span>
                     <span className="text-slate-600">•</span>
                     <span>ID: {safeText(lead?.lead_id)}</span>
                   </div>

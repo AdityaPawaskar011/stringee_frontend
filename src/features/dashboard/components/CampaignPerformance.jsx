@@ -108,7 +108,8 @@ export function CampaignPerformance({ data }) {
       },
       {
         headerName: "AVG TALK TIME",
-        field: "avg_talk_time",
+        // The API sends seconds as avg_talk_time_sec (the column read a key it never had).
+        field: "avg_talk_time_sec",
         minWidth: 140,
         maxWidth: 140,
         hide: true,

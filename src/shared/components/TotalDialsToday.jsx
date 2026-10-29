@@ -1,16 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Users, Headphones, Clock, PhoneIncoming, PauseCircle, Phone, Loader } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import dayjs from 'dayjs';
+import { useSelector } from 'react-redux';
 
 import { OverviewCard } from '@/features/dashboard/components/OverviewCard';
 import { useGetMetaLeadStatsQuery, useGetTotalDialsTodayQuery } from '@/services';
 import { selectIsAdmin } from '@/features/auth/slices/authSlice';
-import { togglePause } from '@/features/calls/slices/dialSlice';
+import { useAgentState } from '@/features/calls/hooks/useAgentState';
 import { SkeletonOverviewCard } from '@/shared/components/ui';
 
-const TotalDialsToday = ({ overview }) => {
+const TotalDialsToday = () => {
   const isAdmin = useSelector(selectIsAdmin);
   const { data: TodaysDialsData, isLoading } = useGetTotalDialsTodayQuery(undefined, {
     pollingInterval: 30000,
@@ -23,9 +22,8 @@ const TotalDialsToday = ({ overview }) => {
   });
   const location = useLocation();
   const isCallPage = location.pathname === "/call";
-  const dispatch = useDispatch();
-
-  const { isPaused } = useSelector(e => e.dial);
+  // Pause / Resume is the agent's state on the server (/agent/state).
+  const { isPaused, toggle: togglePause, isBusy: stateBusy } = useAgentState();
 
   const {
     total_dials,
@@ -33,7 +31,6 @@ const TotalDialsToday = ({ overview }) => {
     connection_rate_pct,
     total_talk_time,
     avg_talk_time_sec,
-    leads_connected,
   } = TodaysDialsData?.data?.[0] || {};
   const {
     total_leads,
@@ -77,7 +74,8 @@ const TotalDialsToday = ({ overview }) => {
           {!isAdmin && (
             <div className='flex gap-2 items-center' >
               <button
-              onClick={() => dispatch(togglePause())}
+              onClick={togglePause}
+              disabled={stateBusy}
               className={[
                 "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold",
                 "border transition-all duration-200 backdrop-blur",

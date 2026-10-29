@@ -12,7 +12,8 @@
  *   addremotestream      the customer's audio as a MediaStream
  */
 
-const SDK_URL = "https://cdn.stringee.com/sdk/web/latest/stringee-web-sdk.min.js";
+// Set per deployment (.env.example), so the SDK version is chosen, not "latest".
+const SDK_URL = import.meta.env.VITE_STRINGEE_SDK_URL;
 const AUTH_TIMEOUT_MS = 15000;
 // makeCall on a client whose connection silently dropped never calls back.
 // Without a limit the dial hung forever with activeCall set: no events, no
@@ -70,6 +71,7 @@ function down(message) {
 
 function loadSdk() {
   if (window.StringeeClient) return Promise.resolve();
+  if (!SDK_URL) return Promise.reject(down("Stringee SDK URL is not set (VITE_STRINGEE_SDK_URL)"));
   if (!sdkPromise) {
     sdkPromise = new Promise((resolve, reject) => {
       const s = document.createElement("script");
@@ -190,11 +192,40 @@ export async function connect(getToken) {
 }
 
 /**
+ * The call needs this tab's microphone. A failure here is a problem on the
+ * agent's side, not an outage, so it is a plain Error: the dial fails with this
+ * message and the disposition still opens, instead of waiting for Stringee.
+ * Browsers only expose the microphone on https or http://localhost.
+ */
+async function ensureMicrophone() {
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    throw new Error(
+      "Microphone is blocked on this page because it isn't https. Open the dialer over https, " +
+        "or allow this address in chrome://flags/#unsafely-treat-insecure-origin-as-secure",
+    );
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    if (e?.name === "NotAllowedError") {
+      throw new Error("Microphone permission is blocked for this site: allow it in the browser's address bar");
+    }
+    if (e?.name === "NotFoundError") {
+      throw new Error("No microphone found on this computer (over Remote Desktop, enable microphone redirection)");
+    }
+    throw new Error(`Could not open the microphone: ${e?.message || e?.name || e}`);
+  }
+  stream.getTracks().forEach((t) => t.stop());
+}
+
+/**
  * Dial `to` from our DID `from`. Resolves with Stringee's callId once the
  * call is accepted; every signalingstate is passed to onState(state, call).
  */
-export function dial({ from, to, custom, onState }) {
-  if (!client) return Promise.reject(down("Stringee is not connected"));
+export async function dial({ from, to, custom, onState }) {
+  await ensureMicrophone();
+  if (!client) throw down("Stringee is not connected");
   if (activeCall) {
     // A leftover from a call that already ended (or never got going) must not
     // block the next one - drop it. Only a call that is really ringing or

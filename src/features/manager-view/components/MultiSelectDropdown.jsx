@@ -22,16 +22,15 @@ export default function MultiSelectDropdown({
 
   const isInactive = loading || disabled;
 
+  // Closing (outside click or the toggle button) also clears the search box.
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) { setOpen(false); setQuery(''); }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
-
-  useEffect(() => { if (!open) setQuery(''); }, [open]);
 
   const q = query.trim().toLowerCase();
   const filtered = q ? options.filter((o) => o.toLowerCase().includes(q)) : options;
@@ -53,7 +52,7 @@ export default function MultiSelectDropdown({
         <button
           type="button"
           disabled={isInactive}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => { if (open) setQuery(''); setOpen(!open); }}
           className={`w-full min-w-[9rem] flex items-center justify-between gap-2 rounded-md border bg-input/40 px-2.5 py-1.5 text-xs text-left transition-smooth
             disabled:opacity-40 disabled:cursor-not-allowed
             ${open ? 'border-primary/60' : 'border-input hover:border-primary/40'}`}

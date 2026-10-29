@@ -18,7 +18,7 @@ export const {
       query: () => '/reporting/hot-meta-leads-direct',
       // { rows, totals } rather than a bare array. The grid lists ANALYSED
       // calls (call_analysis); `totals` counts what was actually DIALLED
-      // (vicidial_log + stringee_calls), which is a much bigger number - see
+      // (the call log), which is a much bigger number - see
       // _dial_totals in api/routers/reporting.py. The header shows both.
       transformResponse: (res) => ({
         rows:   res?.data ?? [],

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
   Radio, Plus, RefreshCw,
-  Infinity, Pause, Ban,
+  Infinity as InfinityIcon, Pause, Ban,
   CheckCircle2, Clock3, Loader2, AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/shared/hooks/useToast';
@@ -86,7 +86,7 @@ export default function CampaignLeadsPage() {
               <div>
                 <h1 className="text-xl font-semibold text-slate-100 leading-none">Lead Distribution Router</h1>
                 <p className="text-xs text-slate-400 mt-1">
-                  Rules match incoming meta_leads by source · form · campaign and route them to VICIdial in realtime
+                  Rules match incoming meta_leads by source · form · campaign and route them to the dialer in realtime
                 </p>
               </div>
             </div>
@@ -105,7 +105,7 @@ export default function CampaignLeadsPage() {
         <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin stagger-children">
           <StatCard label="Total Rules"  value={leads.length}      sub="configured"          icon={Radio}        color="text-slate-400" />
           <StatCard label="Live Now"     value={liveCount}          sub="routing incoming"    icon={CheckCircle2} color="text-emerald-400" />
-          <StatCard label="Realtime ∞"   value={realtimeCount}      sub="no expiry set"       icon={Infinity}     color="text-sky-400" />
+          <StatCard label="Realtime ∞"   value={realtimeCount}      sub="no expiry set"       icon={InfinityIcon}     color="text-sky-400" />
           <StatCard label="Scheduled"    value={counts.scheduled}   sub="not started yet"     icon={Clock3}       color="text-amber-400" />
           <StatCard label="Paused"       value={counts.paused}      sub="manually stopped"    icon={Pause}        color="text-slate-500" />
           <StatCard label="Expired"      value={counts.expired}     sub="past end date"       icon={Ban}          color="text-rose-400" />

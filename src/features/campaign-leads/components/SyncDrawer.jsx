@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { X, CalendarRange, ChevronsRight, Loader2 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
@@ -17,7 +17,12 @@ export default function SyncDrawer({ lead, onClose }) {
   const [syncRule, { isLoading }] = useSyncCampaignLeadRuleMutation();
   const [result, setResult] = useState(null);
 
-  useEffect(() => { setResult(null); setSd(null); setEd(null); }, [lead?.id]);
+  // Reset the form when a different lead is opened (adjusted during render, not in an effect).
+  const [prevLeadId, setPrevLeadId] = useState(lead?.id);
+  if (lead?.id !== prevLeadId) {
+    setPrevLeadId(lead?.id);
+    setResult(null); setSd(null); setEd(null);
+  }
 
   if (!lead) return null;
 

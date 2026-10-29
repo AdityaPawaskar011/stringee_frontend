@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Terminal, RefreshCw } from 'lucide-react';
 import { useWaProxyMutation, useGetWaSessionsQuery } from '@/services';
 import OperationList from './components/OperationList';
@@ -19,10 +19,8 @@ export default function WaApiExplorerPage() {
     [sessions],
   );
 
-  // Default the session picker to the first available session.
-  useEffect(() => {
-    if (!sessionId && sessionIds.length) setSessionId(sessionIds[0]);
-  }, [sessionIds, sessionId]);
+  // Default the session picker to the first available session (adjusted during render).
+  if (!sessionId && sessionIds.length) setSessionId(sessionIds[0]);
 
   // Runs a proxied call and normalizes success/error into { status, data }.
   const onRun = async ({ method, path, body }) => {

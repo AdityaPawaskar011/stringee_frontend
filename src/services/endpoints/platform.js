@@ -1,6 +1,6 @@
 import { dashboardApi } from '../api';
 
-// Platform admin (api/routers/platform.py): companies and which company each VICIdial
+// Platform admin (api/routers/platform.py): companies and which company each
 // login belongs to.
 export const {
   useGetPlatformCompaniesQuery,

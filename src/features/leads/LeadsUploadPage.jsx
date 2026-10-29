@@ -1,4 +1,5 @@
 import { Upload, FileSpreadsheet, ListOrdered, Trash2, Download, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import {
@@ -18,6 +19,7 @@ import { maskPhone } from '@/shared/lib/mask';
 import DatePicker from 'react-datepicker';
 import ConfirmDeletePopup from '@/shared/components/ConfirmDeletePopup';
 import DeleteCellRenderer from './components/DeleteCellRenderer';
+import { dialErrorMessage } from '@/features/calls/lib/dialError';
 import StatusRenderer from './components/StatusRenderer';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -30,6 +32,8 @@ export default function LeadsUploadPage() {
   const [file,             setFile]             = useState(null);
   const [pageSize,         setPageSize]         = useState(25);
   const [activeNumber,     setActiveNumber]     = useState(null);
+  // The /call response's ids for the row call in progress; /hangup needs them.
+  const activeCall = useRef(null);
   const [polling,          setPolling]          = useState(false);
   const [demoData,         setDemoData]         = useState([]);
   const [demoCols,         setDemoCols]         = useState([]);
@@ -154,19 +158,24 @@ export default function LeadsUploadPage() {
   const handleRowCall = useCallback(async (number) => {
     if (activeNumber && activeNumber !== number) return;
     if (activeNumber === number) {
-      try { await callHangup().unwrap?.(); } catch { try { await callHangup(); } catch { error('Failed to Disconnect Call'); return; } }
+      const ids = activeCall.current || {};
+      if (ids.call_id || ids.ref_id) {
+        try { await callHangup(ids).unwrap(); }
+        catch (e) { error(dialErrorMessage(e, 'Failed to Disconnect Call')); return; }
+      }
       success('Call Disconnected');
+      activeCall.current = null;
       setActiveNumber(null);
       return;
     }
     try {
-      const res = await dialNext(number).unwrap();
-      if (res?.vicidial_response?.toLowerCase().includes('error')) { error(res.vicidial_response); return; }
+      const res = await dialNext({ phone: number }).unwrap();
+      activeCall.current = { call_id: res?.call_id ?? undefined, ref_id: res?.ref_id ?? undefined };
       success('Call Connected');
       setActiveNumber(number);
       setPolling(true);
-    } catch {
-      error('Call failed');
+    } catch (e) {
+      error(dialErrorMessage(e, 'Call failed'));
     }
   }, [activeNumber, dialNext, success, error, callHangup]);
 
@@ -315,7 +324,13 @@ export default function LeadsUploadPage() {
             <FileSpreadsheet className="w-3 h-3" /> Download
           </a>
         </div>
-        <p className="text-xs text-slate-400 mb-3">Upload your Excel file using this structure. Only few sample rows are shown.</p>
+        <p className="text-xs text-slate-400 mb-3">
+          Upload your Excel file using this structure. Only few sample rows are shown.
+          {' '}<code>list_id</code> is the number of one of the chosen campaign's lists (see{' '}
+          <Link to="/admin/lists" className="text-primary hover:underline">Dialer setup → Lead lists</Link>).
+          To upload into a list by picking it, and to move, reset or delete leads, use{' '}
+          <Link to="/admin/leads" className="text-primary hover:underline">Dialer setup → Leads</Link>.
+        </p>
         <div className="h-[160px]">
           <AgGridReact rowData={demoData} columnDefs={demoCols} defaultColDef={{ resizable: true, sortable: false, filter: false }} theme={agTheme} />
         </div>

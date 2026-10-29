@@ -4,14 +4,13 @@ import { CallStatusChart } from './components/CallStatusChart';
 import { UtilizationChart } from './components/UtilizationChart';
 import { Users, Headphones, Clock, PhoneIncoming, PauseCircle, Phone, Loader} from 'lucide-react';
 import { ComplianceStats} from './components/ComplianceStats';
-import { useGetAgentsProductivityQuery, useGetAllDataQuery, useGetCallStatusQuery, useGetCampaignPerformanceQuery, useGetCompliancereviewQuery, useGetDialerPerformanceQuery, useGetGraphDataQuery, useGetHourlyPerformanceQuery, useGetLeadfunnelQuery } from '@/services';
+import { useGetCallStatusQuery, useGetCampaignPerformanceQuery, useGetCompliancereviewQuery, useGetDialerPerformanceQuery, useGetGraphDataQuery, useGetHourlyPerformanceQuery } from '@/services';
 import TotalDialsToday from '@/shared/components/TotalDialsToday';
 import DialerPerformance from './components/DialerPerformance';
 import { CampaignPerformance } from './components/CampaignPerformance';
 import HourlyPerformanceHeatmap from './components/HourlyPerformance';
 import { LeadFunnel } from './components/LeadFunnel';
 import { RnrTierFunnel } from './components/RnrTierFunnel';
-import { MetaLeadSplit } from './components/MetaLeadSplit';
 import { CallAttemptChart } from './components/CallAttemptChart';
 
 export default function DashboardPage() {
@@ -54,7 +53,6 @@ export default function DashboardPage() {
     {/* LEFT COLUMN */}
     <div className="lg:col-span-2 space-y-4 stagger-children">
       <TotalDialsToday/>
-      <MetaLeadSplit/>
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="lg:w-1/3 h-100%">
           <DialerPerformance data={dialerPerformance} graphData={graphData} isLoading={dialerPerformanceLoading} isGraphDataLoading={graphDataLoading}/>

@@ -5,7 +5,6 @@ import { dashboardApi } from '../api';
 export const {
   useGetDispositionsQuery,
   useGetDispositionSettingsQuery,
-  useGetVicidialCodesQuery,
   useGetSuggestedCodeQuery,
   useCreateDispositionMutation,
   useUpdateDispositionMutation,
@@ -23,13 +22,6 @@ export const {
     // Admin: every row, the company's campaigns and the colour choices.
     getDispositionSettings: builder.query({
       query: () => '/settings/dispositions',
-      providesTags: ['Dispositions'],
-    }),
-
-    // Admin: status codes VICIdial already has for the company's campaigns.
-    getVicidialCodes: builder.query({
-      query: () => '/settings/dispositions/vicidial-codes',
-      transformResponse: (res) => res?.codes ?? [],
       providesTags: ['Dispositions'],
     }),
 

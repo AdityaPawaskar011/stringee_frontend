@@ -126,13 +126,13 @@ export default function StringeeAgentsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Agent Mapping</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Link each VICIdial agent to their StringeeX agent. An agent with no link
+            Link each agent to their StringeeX agent. An agent with no link
             cannot dial Indian (+91) numbers.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile icon={Users}         label="VICIdial agents"    value={viciAgents.length} />
+          <StatTile icon={Users}         label="Agents"    value={viciAgents.length} />
           <StatTile icon={CheckCircle2}  label="Linked"             value={linkedCount} tone="emerald" />
           <StatTile icon={AlertTriangle} label="Not linked"         value={viciAgents.length - linkedCount} tone="amber" />
           <StatTile icon={Link2}         label="Free StringeeX IDs" value={unclaimedCount} tone="slate" />
@@ -181,7 +181,7 @@ export default function StringeeAgentsPage() {
           <table className="w-full text-sm">
             <thead className="bg-white/5 text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 text-left">VICIdial agent</th>
+                <th className="px-4 py-3 text-left">Agent</th>
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">StringeeX agent</th>
                 <th className="px-4 py-3 text-left">Updated</th>

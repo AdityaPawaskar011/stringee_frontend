@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useMemo } from "react"
 
 import { TrendingDown } from "lucide-react"
 import { useGetLeadfunnelQuery } from "@/services";
@@ -33,9 +33,9 @@ export function LeadFunnel() {
 
   const dialed = num(data.dialed)
   const connected = num(data.connected)
-  const callback = num(data.Call_back)
+  // const callback = num(data.Call_back)  // used only by the commented-out CALLBACK stage
   const interested = num(data.Interested)
-  const converted = num(data.converted)
+  // const converted = num(data.converted)  // used only by the commented-out CONVERTED stage
 
 
   // Calculate percentages and conversions
@@ -110,7 +110,7 @@ export function LeadFunnel() {
     //     drop: safeDrop(qualified, converted, 0),
     //   },
   ],
-  [dialed, connected, callback, interested, converted]
+  [dialed, connected, interested]
 )
 
   return (

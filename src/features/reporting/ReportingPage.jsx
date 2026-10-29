@@ -48,8 +48,8 @@ export default function ReportingPage() {
     skipPollingIfUnfocused: true,
   });
   const rows = hotLeads?.rows ?? EMPTY_ROWS;
-  // Dials actually placed in the range, straight from vicidial_log and
-  // stringee_calls. Deliberately NOT derived from `rows`: the grid only holds
+  // Dials actually placed in the range, straight from the call log.
+  // Deliberately NOT derived from `rows`: the grid only holds
   // calls that produced a recording worth analysing, so it undercounts dialling
   // by a wide margin (176 Stringee attempts -> 57 analysed on 2026-10-02).
   const dialTotals = hotLeads?.totals ?? EMPTY_TOTALS;
@@ -94,7 +94,7 @@ export default function ReportingPage() {
       counts[c] = (counts[c] || 0) + 1;
     });
     const known = DISPOSITIONS.map((d) => d.value);
-    // VICIdial statuses are configurable: codes not in DISPOSITIONS still get an option.
+    // Dispositions are configurable: codes not in DISPOSITIONS still get an option.
     const extra = Object.keys(counts).filter((c) => c !== NO_STATUS && !known.includes(c)).sort();
     return [
       ...DISPOSITIONS.map((d) => ({ value: d.value, label: `${d.label} (${d.value})`, count: counts[d.value] || 0 })),
@@ -147,7 +147,7 @@ export default function ReportingPage() {
             <StatPill
               label="Dials"
               value={dialTotals.total ?? '—'}
-              title="Calls placed through VICIdial in this date range (vicidial_log, excluding VDAD)."
+              title="Calls placed in this date range."
             />
             <StringeeToggle
               active={stringeeOnly}

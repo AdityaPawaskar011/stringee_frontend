@@ -1,14 +1,18 @@
 import {
+  Ban,
   BarChart3,
   Bot,
+  Contact,
   CheckCheck,
   Gauge,
   Inbox,
   Link2,
   LayoutDashboard,
   Mail,
+  Megaphone,
   MessageCircle,
   ListChecks,
+  ListOrdered,
   Building2,
   PlugZap,
   PhoneCall,
@@ -19,6 +23,7 @@ import {
   Smartphone,
   Upload,
   UserCog,
+  UserPlus,
   Users,
 } from "lucide-react";
 
@@ -37,6 +42,11 @@ export const DATE_PICKER_HIDDEN_PATHS = [
   "/settings/dispositions",
   "/platform/companies",
   "/settings/call-quality",
+  "/admin/users",
+  "/admin/campaigns",
+  "/admin/lists",
+  "/admin/leads",
+  "/admin/dnc",
 ];
 
 /**
@@ -118,7 +128,17 @@ function baseNavGroups({ isAdmin, isWhatsappAdmin, isCompanyAdmin }) {
         label: "Reports",
         items: [{ name: "Reporting", path: "/reporting", icon: BarChart3, description: "Hot leads, call outcomes and recordings" }],
       },
-      // Company settings: only a company-wide admin may change them (the API agrees).
+      // Dialer setup and company settings: only a company-wide admin (the API agrees).
+      ...(isCompanyAdmin ? [{
+        label: "Dialer setup",
+        items: [
+          { name: "Users", path: "/admin/users", icon: UserPlus, description: "Logins, their campaigns and softphones" },
+          { name: "Campaigns", path: "/admin/campaigns", icon: Megaphone, description: "How Dial Next picks leads, and who dials" },
+          { name: "Lead Lists", path: "/admin/lists", icon: ListOrdered, description: "Where leads live, and which campaign dials them" },
+          { name: "Leads", path: "/admin/leads", icon: Contact, description: "Upload, move, reset and delete leads" },
+          { name: "Do-not-call", path: "/admin/dnc", icon: Ban, description: "Numbers your company never dials" },
+        ],
+      }] : []),
       ...(isCompanyAdmin ? [{
         label: "Settings",
         items: [

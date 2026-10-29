@@ -11,6 +11,7 @@ import {
   useGetManagerViewCallAnalysisQuery,
   useGetManagerViewMetaLeadsQuery,
   useGetManagerViewHotNotesQuery,
+  useGetDispositionsQuery,
 } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
 import { useBranding } from '@/shared/theme/useBranding';
@@ -26,7 +27,7 @@ import CallDetailModal from './components/CallDetailModal';
 import StandaloneGrid from './components/StandaloneGrid';
 import ThemeToggle from './components/ThemeToggle';
 import { callAnalysisColumns, metaLeadsColumns, hotNotesColumns } from './components/standaloneColumns';
-import { computeReferenceKpis, todayYMD } from './utils';
+import { computeReferenceKpis, todayYMD, addCompanyCallbackCodes } from './utils';
 import { MvThemeContext, MV_THEME_KEY, readInitialTheme } from './theme';
 
 const EMPTY_OPTIONS = {
@@ -78,6 +79,9 @@ export default function ManagerViewPage() {
   const { error: toastError } = useToast();
   const maskPii = useSelector(selectMaskPii);
   const gridContext = useMemo(() => ({ maskPii }), [maskPii]);
+  // The company's callback codes count as callbacks in the summaries below.
+  const { data: dispositions } = useGetDispositionsQuery();
+  addCompanyCallbackCodes(dispositions);
   const branding = useBranding();
   const [theme, setTheme] = useState(readInitialTheme);
   const [activeTab, setActiveTab] = useState('overview');
@@ -130,9 +134,14 @@ export default function ManagerViewPage() {
   const metaLeads = useGetManagerViewMetaLeadsQuery(metaLeadsArgs, { skip: activeTab !== 'leads' });
   const hotNotes = useGetManagerViewHotNotesQuery(hotNotesArgs, { skip: activeTab !== 'notes' });
 
-  useEffect(() => {
+  // Stamp "last refreshed" whenever the combined query (re)fulfils. Tracked against the
+  // previous timestamp/success pair during render instead of in an effect.
+  const refreshSig = `${combined.fulfilledTimeStamp}|${combined.isSuccess}`;
+  const [prevRefreshSig, setPrevRefreshSig] = useState(null);
+  if (refreshSig !== prevRefreshSig) {
+    setPrevRefreshSig(refreshSig);
     if (combined.isSuccess) setLastRefreshed(new Date());
-  }, [combined.fulfilledTimeStamp, combined.isSuccess]);
+  }
 
   useEffect(() => {
     if (combined.isError) {
@@ -142,7 +151,7 @@ export default function ManagerViewPage() {
   }, [combined.isError, combined.error, toastError]);
 
   const options = filterSets.data ?? EMPTY_OPTIONS;
-  const rows = combined.data?.data ?? [];
+  const rows = useMemo(() => combined.data?.data ?? [], [combined.data]);
   const kpis = useMemo(() => computeReferenceKpis(rows), [rows]);
   const isFetching = combined.isFetching || filterSets.isFetching;
 

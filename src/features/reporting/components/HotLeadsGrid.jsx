@@ -15,7 +15,7 @@ import { selectMaskPii } from '@/features/auth/slices/authSlice';
 import { maskEmail, maskPhone } from '@/shared/lib/mask';
 import { gridTheme } from '@/features/manager-view/components/gridConfig';
 import { CONTACT_OPTIONS } from '../constants';
-import { ibLabel, shortDate } from '../utils';
+import { shortDate } from '../utils';
 import BoolBadge from './BoolBadge';
 import RawDataCell from './RawDataCell';
 import ExpandableTextCell from './ExpandableTextCell';
@@ -312,11 +312,6 @@ function RawDataCellRenderer(params) {
   return <RawDataCell data={params.value} theme={params.context.theme} />;
 }
 
-// IB = the lead sits in VICIdial's IB list (7022026); the server sends `is_ib` on the row.
-function IbCellRenderer(params) {
-  const v = params.value === 'Yes' ? true : params.value === 'No' ? false : null;
-  return <BoolBadge value={v} />;
-}
 
 function SummaryCellRenderer(params) {
   return <ExpandableTextCell text={params.value} title="Call summary" theme={params.context.theme} />;
@@ -857,16 +852,6 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         cellRenderer: RawDataCellRenderer,
       },
       {
-        headerName: 'IB',
-        colId: 'is_ib',
-        width: 80,
-        headerTooltip:
-          'Introducing broker — Yes when the lead was routed into the IB list (7022026), ' +
-          'No when it went to the general list (971585658633)',
-        valueGetter: (p) => ibLabel(p.data?.is_ib),
-        cellRenderer: IbCellRenderer,
-      },
-      {
         headerName: 'Agent Name',
         colId: '__agent',
         width: 140,
@@ -1012,8 +997,8 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
   // inline dark theme; agThemeLight gives the navy-header + white-rows spreadsheet look).
   const agTheme = useMemo(() => gridTheme(theme), [theme]);
 
-  // One row per DIAL, keyed on vicidial_log.uniqueid. A lead called twice - or
-  // on both VICIdial and Stringee - has a row each, and a lead-keyed id would
+  // One row per DIAL, keyed on the dial's uniqueid. A lead called twice
+  // has a row each, and a lead-keyed id would
   // collide and silently drop all but one. call_id is only present once a call
   // has been analysed, so it cannot be the key any more.
   // (Edits stay keyed by lead_id in dirtySet/savedSet.)

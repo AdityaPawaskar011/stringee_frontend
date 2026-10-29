@@ -3,14 +3,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 
-import { selectCampaingName, selectIsAdmin, selectUser } from "@/features/auth/slices/authSlice";
-import { resetAutoDialTime, selectFormNameFilter, setCurrentLead } from "@/features/calls/slices/dialSlice";
+import { selectIsAdmin, selectUser } from "@/features/auth/slices/authSlice";
+import { AUTO_DIAL_SECONDS, resetAutoDialTime, selectFormNameFilter, setCurrentLead } from "@/features/calls/slices/dialSlice";
 import { CALL_STATE, selectIsCallBusy, setCallState, setCurrentCallFromDial } from "@/features/calls/slices/callSlice";
 import { useDialNextMutation } from "@/services";
 import { useToast } from "@/shared/hooks/useToast";
 import { dialErrorMessage } from "@/features/calls/lib/dialError";
-
-const HOT_METAL_CAMPAIGN = "HotMetaleads";
 
 /**
  * Agent auto-dial engine: counts down to `autoDialTime` and fires the next dial
@@ -27,15 +25,21 @@ export function useAutoDial() {
   const user = useSelector(selectUser);
   const isAdmin = useSelector(selectIsAdmin);
   const isCallBusy = useSelector(selectIsCallBusy);
-  const campaignName = useSelector(selectCampaingName);
   const formNameFilter = useSelector(selectFormNameFilter);
   const isAvailableLeads = useSelector((s) => s.dial.isAvailableLeads);
   const { isPaused, autoDialTime } = useSelector((s) => s.dial);
 
-  const isHotMetal = campaignName === HOT_METAL_CAMPAIGN;
   const [dialNext, { isLoading: isDialing }] = useDialNextMutation();
-  const [nextDialIn, setNextDialIn] = useState(30);
+  const [nextDialIn, setNextDialIn] = useState(AUTO_DIAL_SECONDS);
   const dialLockRef = useRef(false);
+
+  // A new countdown (resetAutoDialTime) starts from the full delay; the timer
+  // below ticks it down from there.
+  const [countdownFor, setCountdownFor] = useState(autoDialTime);
+  if (countdownFor !== autoDialTime) {
+    setCountdownFor(autoDialTime);
+    setNextDialIn(AUTO_DIAL_SECONDS);
+  }
 
   // Read the filter through a ref so the dial callback doesn't re-create (and
   // restart the countdown) every time the form filter changes.
@@ -52,19 +56,16 @@ export function useAutoDial() {
       dispatch(setCallState(CALL_STATE.DIALING));
 
       const currentFormName = formNameFilterRef.current;
-      const dialParams = isHotMetal && currentFormName ? { form_name: currentFormName } : {};
+      // The Leads panel's form filter narrows Dial Next on any campaign.
+      const dialParams = currentFormName ? { form_name: currentFormName } : {};
 
       const res = await dialNext(dialParams).unwrap();
 
-      if (res?.vicidial_response?.toLowerCase?.().includes("error")) {
-        toastError(res.vicidial_response);
-        dispatch(setCallState(CALL_STATE.IDLE));
-        return;
-      }
-      // Which dialer took this call. "vicidial" for everything until
-      // STRINGEE_ENABLED is turned on server-side.
       dispatch(setCurrentCallFromDial(res));
-      dispatch(setCurrentLead(res?.details ?? null));
+      // The lead, plus how the queue picked it (callback / fresh / redial).
+      dispatch(setCurrentLead(res?.details
+        ? { ...res.details, queue_step: res.queue_step, callback: res.callback }
+        : null));
       dispatch(setCallState(CALL_STATE.INCALL));
       navigate("/call");
       dispatch(resetAutoDialTime());
@@ -73,7 +74,7 @@ export function useAutoDial() {
       toastError(dialErrorMessage(e, "Failed to dial next. Please try again."));
       dispatch(resetAutoDialTime());
     }
-  }, [isCallBusy, isDialing, isHotMetal, dialNext, dispatch, navigate, toastError]);
+  }, [isCallBusy, isDialing, dialNext, dispatch, navigate, toastError]);
 
   useEffect(() => {
     if (isAdmin || !user) return;
@@ -90,7 +91,6 @@ export function useAutoDial() {
     }
 
     dialLockRef.current = false;
-    setNextDialIn(initial);
 
     const timer = setInterval(() => {
       const remaining = target.diff(dayjs(), "seconds");

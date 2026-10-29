@@ -45,7 +45,7 @@
 
     --radius: 0.5rem;
 
-    /* === Brand === electric blue -> cyan, the SGFX arrow colours */
+    /* === Brand === electric blue -> cyan (a company's own colours override these at runtime) */
     --brand-from: 220 100% 59%;   /* #2F7BFF */
     --brand-via: 205 100% 60%;
     --brand-to: 186 94% 50%;      /* #08C9E8 */

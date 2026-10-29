@@ -7,6 +7,7 @@ import { useGetAgentWiseLeadQuery, useDialNextMutation } from "@/services";
 import { setCurrentLead } from "@/features/calls/slices/dialSlice";
 import { CALL_STATE, selectIsCallBusy, setCallState, setCurrentCallFromDial, setIsCallbackDial } from "@/features/calls/slices/callSlice";
 import { SkeletonAvatarRow } from "@/shared/components/ui";
+import { useStatusTone } from "@/features/calls/lib/dispositionTone";
 
 function safeText(v) {
   if (v === null || v === undefined) return "—";
@@ -36,16 +37,14 @@ function formatDate(d) {
   });
 }
 
-// Normalizes backend/app callback formats into a Date, or null if unparseable.
-// Handles ISO ("...T..."), MySQL space-separated ("YYYY-MM-DD HH:MM:SS"),
-// and the app's own "YYYY-MM-DD+HH:MM:SS" (+ delimiter, see CallDispositionPopup).
+// The server sends callback_time as ISO-8601 with its offset; a plain
+// "YYYY-MM-DD HH:MM:SS" is read as local time. Null when unparseable.
 function parseCallbackTime(d) {
   if (!d) return null;
   let s = String(d).trim();
   if (!s || s.toLowerCase() === "nan") return null;
-  // unify the first date/time delimiter to "T" so Date parses it as local time
-  // (non-global replace leaves any trailing tz offset like "+05:30" intact)
-  s = s.replace(/[+\s]/, "T");
+  // Only the separator straight after the date: an offset ("+05:30") stays as it is.
+  s = s.replace(/^(\d{4}-\d{2}-\d{2})[+\s](?=\d{2}:)/, "$1T");
   const date = new Date(s);
   return Number.isNaN(date.getTime()) ? null : date;
 }
@@ -63,17 +62,10 @@ function formatDateTime(d) {
   });
 }
 
-function badgeClass(status) {
-  const s = String(status || "").toUpperCase();
-  if (s.includes("HOLD")) return "bg-amber-500/10 text-amber-300 border-amber-500/20";
-  if (s.includes("CALLBK") || s.includes("CB")) return "bg-sky-500/10 text-sky-300 border-sky-500/20";
-  if (s.includes("SALE") || s.includes("QUAL")) return "bg-emerald-500/10 text-emerald-300 border-emerald-500/20";
-  return "bg-white/5 text-slate-300 border-white/10";
-}
-
 export default function CallbackListPanel() {
   const dispatch = useDispatch();
   const isCallBusy = useSelector(selectIsCallBusy);
+  const badgeClass = useStatusTone();
 
   const { data, isLoading, isError } = useGetAgentWiseLeadQuery(
     { callbackOnly: true },
@@ -113,15 +105,9 @@ export default function CallbackListPanel() {
 
         const res = await dialNext({ phone: lead?.phone_number }).unwrap();
 
-        if (res?.vicidial_response?.toLowerCase?.().includes("error")) {
-          alert(res.vicidial_response);
-          dispatch(setCallState(CALL_STATE.IDLE));
-          return;
-        }
-
-        // Which dialer took the callback, exactly as DIAL NEXT records it. Without
-        // this a Stringee callback was never placed by the browser, and the poller
-        // kept watching the previous (finished) call.
+        // Record the call exactly as DIAL NEXT does. Without this the callback was
+        // never placed by the browser, and the poller kept watching the previous
+        // (finished) call.
         dispatch(setCurrentCallFromDial(res));
         dispatch(setCurrentLead(lead ?? null));
         dispatch(setCallState(CALL_STATE.INCALL));
@@ -172,7 +158,6 @@ export default function CallbackListPanel() {
         ) : (
           leads.map((lead) => {
             const fullName = [
-              safeText(lead?.title) !== "—" ? safeText(lead?.title) : null,
               safeText(lead?.first_name) !== "—" ? safeText(lead?.first_name) : null,
               safeText(lead?.last_name) !== "—" ? safeText(lead?.last_name) : null,
             ]
@@ -225,16 +210,7 @@ export default function CallbackListPanel() {
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
                     <span className="truncate">{safeText(lead?.city)}</span>
                     <span className="text-slate-600">•</span>
-                    <span>{safeText(lead?.country_code)}</span>
-                    <span className="text-slate-600">•</span>
                     <span>ID: {safeText(lead?.lead_id)}</span>
-
-                    {safeText(lead?.date_of_birth) !== "—" && (
-                      <>
-                        <span className="text-slate-600">•</span>
-                        <span>DOB: {formatDate(lead?.date_of_birth)}</span>
-                      </>
-                    )}
                   </div>
 
                   {/* Row 4: comments (only if present) */}

@@ -37,6 +37,12 @@ export const dashboardApi = createApi({
     'Platform',
     'CallQuality',
     'Me',
+    'AgentState',
+    'AdminUsers',
+    'AdminCampaigns',
+    'AdminLists',
+    'AdminLeads',
+    'AdminDnc',
   ],
   endpoints: () => ({}),
 });

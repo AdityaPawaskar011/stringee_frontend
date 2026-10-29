@@ -7,6 +7,7 @@ export default function ConfirmDeletePopup({
   onConfirm,
   onCancel,
   loading = false,
+  confirmLabel = "Delete",
 }) {
   if (!open) return null;
 
@@ -37,8 +38,8 @@ export default function ConfirmDeletePopup({
             disabled={loading}
             className="px-4 py-2 rounded-md bg-rose-600 hover:bg-rose-700 text-sm text-white flex items-center gap-2 disabled:opacity-50 transition-smooth active:scale-[0.97]"
           >
-            <Trash2 size={14} />
-            {loading ? "Deleting..." : "Delete"}
+            {confirmLabel === "Delete" && <Trash2 size={14} />}
+            {loading ? (confirmLabel === "Delete" ? "Deleting..." : "Working...") : confirmLabel}
           </button>
         </div>
       </div>

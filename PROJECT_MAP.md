@@ -1,6 +1,10 @@
-# Project Map — VICIdial Frontend
+# Project Map — Stringee Dialer Frontend
 
 > React 19 · Vite · Redux Toolkit + RTK Query · Tailwind CSS · ag-Grid · Bulletproof-React layout
+
+**Backend:** the Stringee-only API (FastAPI + Postgres, no VICIdial). Its contract is
+`backend/docs/API_CONTRACT.md` in the backend repo. Local dev: API on `http://localhost:8002`
+(`VITE_BASE_URL`), this app on `:5502` (`npm run dev`, or `npm run dev:test` with `.env.test`).
 
 ---
 
@@ -8,7 +12,7 @@
 
 ```
 src/
-├── main.jsx          Vite entry — wraps <App /> in <VicidialPopupProvider>
+├── main.jsx          Vite entry — renders <App />
 ├── index.css         Global Tailwind base styles
 ├── app/              App shell (App, Layout, store, route guards)
 ├── features/         Self-contained domain modules (page + components + slices)
@@ -31,6 +35,13 @@ Path alias: `@/*` → `src/*` (configured in `vite.config.js`).
 | `/leads-upload` | LeadsUploadPage | Admin only | `src/features/leads/LeadsUploadPage.jsx` |
 | `/email-templates` | EmailTemplatesPage | Admin only | `src/features/email-templates/EmailTemplatesPage.jsx` |
 | `/campaign-leads` | CampaignLeadsPage | Admin only | `src/features/campaign-leads/CampaignLeadsPage.jsx` |
+| `/admin/users` | UsersPage | Company admin | `src/features/admin/UsersPage.jsx` |
+| `/admin/campaigns` | CampaignsPage | Company admin | `src/features/admin/CampaignsPage.jsx` |
+| `/admin/lists` | ListsPage | Company admin | `src/features/admin/ListsPage.jsx` |
+| `/admin/leads` | LeadsPage | Company admin | `src/features/admin/LeadsPage.jsx` |
+| `/admin/dnc` | DncPage | Company admin | `src/features/admin/DncPage.jsx` |
+| `/settings/*` | Integrations, Dispositions, Call Quality | Company admin | `src/features/settings/` |
+| `/platform/companies` | CompaniesPage | Platform admin | `src/features/platform/CompaniesPage.jsx` |
 | `/call` | CallPage | Agent only | `src/features/calls/CallPage.jsx` |
 | `/unauthorized` | UnauthorizedPage | Any | `src/features/auth/UnauthorizedPage.jsx` |
 | `*` | NotFoundPage | Any | `src/pages/NotFoundPage.jsx` |
@@ -45,7 +56,7 @@ src/app/
 ├── Layout.jsx           Renders <Sidebar> + <TopBar> + <Toaster> around page content; owns sidebar collapse state
 ├── store.js             configureStore — slice reducers from features + RTK Query middleware
 └── routes/
-    ├── PrivateRoute.jsx Auth + role guard (allowedAdmin prop)
+    ├── PrivateRoute.jsx Auth + role guard (allowedAdmin, requireCompanyAdmin, requirePlatformAdmin, requireAdminr)
     └── PublicRoute.jsx  Redirects logged-in users away from /login
 ```
 
@@ -59,7 +70,7 @@ Each feature is self-contained: page entry at the root, sub-components in `compo
 
 ```
 src/features/auth/
-├── LoginPage.jsx                Vicidial login form (admin/agent role + campaign select)
+├── LoginPage.jsx                Login form (admin/agent role + campaign select)
 ├── UnauthorizedPage.jsx         403 page
 ├── components/
 │   └── SessionPopup.jsx         Session-expiry modal (mounted globally in App.jsx)
@@ -99,15 +110,33 @@ src/features/calls/
 ├── CallPage.jsx                  Agent call screen — TotalDialsToday + ContactDetails + leads/callback panels
 ├── components/
 │   ├── ContactDetails.jsx        Lead info panel + END CALL button + manual dial input
-│   ├── AgentLeadsPanel.jsx       Scrollable lead list with form_name filter (HotMetal campaign)
+│   ├── AgentLeadsPanel.jsx       Scrollable lead list with an optional form filter (any campaign)
 │   ├── CallbackListPanel.jsx     Scheduled callbacks list — callback time + dial button
 │   ├── AgentTimelineChart.jsx    ApexCharts range bar — agent active/break sessions today
-│   └── CallDispositionPopup.jsx  Post-call modal — status picker, callback datetime, SMS/WhatsApp
+│   └── CallDispositionPopup.jsx  Post-call modal — status picker, callback datetime (ISO + offset), SMS/WhatsApp
 ├── hooks/
-│   └── useAutoDial.js            Auto-dial countdown + dial-next action (mount ONCE — TopBar does)
+│   ├── useAutoDial.js            Auto-dial countdown + dial-next action (mount ONCE — TopBar does)
+│   ├── useAgentState.js          Server agent state (GET/PUT /agent/state); mirrors isPaused into dialSlice
+│   └── useDialNumber.js          Manual dial of one number (call page box, Reporting's Call button)
+├── lib/
+│   ├── dialError.js              dialErrorMessage() (server detail for 400/403/404/409/422/502/503), hasCallId()
+│   └── dispositionTone.js        TONE colour classes + useStatusTone() (status -> colour from /dispositions)
 └── slices/
     ├── callSlice.js              callState FSM, showDispo, isCallbackDial
-    └── dialSlice.js              currentLead, isPaused, autoDialTime, formNameFilter
+    └── dialSlice.js              currentLead (+ queue_step, callback), isPaused (mirror), autoDialTime, formNameFilter
+```
+
+### features/admin/ (Dialer setup — company admins)
+
+```
+src/features/admin/
+├── UsersPage.jsx      Logins: create/edit (role, campaigns, StringeeX agent, phone), reset password
+├── CampaignsPage.jsx  Campaigns: dial settings (windows, attempts, excluded statuses, caller IDs) + agents
+├── ListsPage.jsx      Lead lists: campaign or parked, active, default intake list (★), lead counts
+├── LeadsPage.jsx      Leads: filter + server paging, upload into a list, bulk move / reset / delete
+├── DncPage.jsx        Do-not-call numbers: add, search, remove
+├── ui.jsx             Card, Field, Pill, Table, CheckList, Pager
+└── lib.js             inputClass / buttonClass / ghostButtonClass, apiError(), fmtDateTime()
 ```
 
 ### features/leads/
@@ -180,7 +209,9 @@ src/services/
 └── endpoints/
     ├── auth.js          useLoginMutation, useRefreshMutation, useGetCampaignsQuery
     ├── dashboard.js     11 analytics queries (totalDials, callStatus, agentsProductivity, campaignPerformance, ...)
-    ├── calls.js         dialNext, callHangup, getLogData, submitStatus, ping, userTimeline, statusData, sendMessage
+    ├── calls.js         dialNext, callHangup, getLogData, submitStatus, ping, userTimeline, statusData, sendMessage,
+    │                    getAgentState / setAgentState
+    ├── admin.js         /admin/users, /admin/campaigns, /admin/lists, /admin/leads (+ upload/move/reset), /admin/dnc
     ├── leads.js         uploadExcelLeads, getLeads, getAgentWiseLead, deleteLead
     ├── email.js         Full CRUD for email templates + attachments (8 hooks)
     └── campaignLeads.js getCampaignLeads, createCampaignLead, toggleCampaignLeadActive (optimistic),
@@ -209,8 +240,6 @@ src/shared/
 │       ├── navItems.js           Nav config per role + date-picker-hidden paths + page-title lookup
 │       ├── useSidebarCollapsed.js  Collapse state persisted in localStorage
 │       └── PageContainer.jsx     Max-width wrapper (currently unused, available)
-├── context/
-│   └── VicidialPopupContext.jsx  openPopup/closePopup for the VICIdial popup window
 ├── hooks/
 │   └── useToast.jsx              success/error/info wrappers around react-hot-toast
 └── lib/

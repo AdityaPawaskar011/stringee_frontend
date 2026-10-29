@@ -18,7 +18,7 @@ import {
   Boxes,
   FileText,
   ShieldCheck,
-  Infinity,
+  Infinity as InfinityIcon,
   Clock3,
   Pause,
   CheckCircle2,
@@ -29,6 +29,7 @@ import {
   useCreateCampaignLeadMutation,
   useLeadFiltersQuery,
   useGetCampaignsQuery,
+  useGetAdminListsQuery,
 } from '@/services';
 import { fmtDate } from '../utils';
 
@@ -45,6 +46,7 @@ const EMPTY = {
   adset_names: [],
   form_names: [],
   destination_campaign: '',
+  destination_list_id: '',   // '' = the campaign's first active list
   startDate: '',
   endDate: '',
   isActive: true,
@@ -123,20 +125,26 @@ function MultiSelectDropdown({
 
   const isInactive = loading || disabled;
 
-  useEffect(() => {
-    if (disabled && open) setOpen(false);
-  }, [disabled, open]);
+  // Closing always clears the search box.
+  const close = () => {
+    setOpen(false);
+    setQuery('');
+  };
+
+  // Disabled while open: close it now, during render.
+  if (disabled && open) close();
 
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery('');
+      }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
-
-  useEffect(() => { if (!open) setQuery(''); }, [open]);
 
   const q = query.trim().toLowerCase();
   const filtered = q
@@ -163,7 +171,7 @@ function MultiSelectDropdown({
         <button
           type="button"
           disabled={isInactive}
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => (open ? close() : setOpen(true))}
           className={`w-full flex items-center justify-between gap-2 rounded-lg border bg-slate-900/80 px-3 py-2.5 text-sm text-left transition
             disabled:opacity-40 disabled:cursor-not-allowed
             ${open ? 'border-sky-500/50 ring-2 ring-sky-500/20' : 'border-slate-700 hover:border-slate-600'}`}
@@ -316,13 +324,16 @@ function DiscardConfirm({ onKeep, onDiscard }) {
   );
 }
 
-function ConfirmCreateModal({ form, destinationLabel, submitting, onCancel, onConfirm }) {
-  const Row = ({ label, value, accent }) => (
+function Row({ label, value, accent }) {
+  return (
     <div className="flex items-start justify-between gap-4 py-2.5 border-b border-white/5 last:border-b-0">
       <div className="text-[10px] text-slate-500 uppercase tracking-widest pt-0.5 shrink-0">{label}</div>
       <div className={`text-sm text-right ${accent ?? 'text-slate-200'} max-w-[60%] break-words`}>{value}</div>
     </div>
   );
+}
+
+function ConfirmCreateModal({ form, destinationLabel, listLabel, submitting, onCancel, onConfirm }) {
   const list = (arr, fallback = '—') =>
     !arr || arr.length === 0 ? <span className="text-slate-500 italic">{fallback}</span>
     : (
@@ -364,12 +375,13 @@ function ConfirmCreateModal({ form, destinationLabel, submitting, onCancel, onCo
           <Row label="Start Date" value={fmtDate(form.startDate)} />
           <Row label="End Date" value={form.endDate
             ? fmtDate(form.endDate)
-            : <span className="text-emerald-300 inline-flex items-center gap-1"><Infinity className="w-3 h-3" /> realtime forever</span>} />
+            : <span className="text-emerald-300 inline-flex items-center gap-1"><InfinityIcon className="w-3 h-3" /> realtime forever</span>} />
           <Row label="Sources" value={list(form.sources)} />
           <Row label="Campaign Names" value={list(form.campaign_names, 'any')} />
           {/* <Row label="Ad Set Names" value={list(form.adset_names, 'any')} /> */}
           <Row label="Form Names" value={list(form.form_names, 'any')} />
           <Row label="Destination" value={<span className="text-emerald-300">{destinationLabel ?? form.destination_campaign}</span>} />
+          <Row label="List" value={listLabel ?? "The campaign's first active list"} />
           <Row label="Status"
             value={form.isActive
               ? <span className="text-emerald-300 inline-flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Active immediately</span>
@@ -442,6 +454,8 @@ export default function CreateRuleModal({ open, onClose }) {
     data: campaignList,
     isLoading: campaignListLoading,
   } = useGetCampaignsQuery(undefined, { skip: !open });
+  // The company's lead lists (Dialer setup → Lead lists), to pick the one this rule fills.
+  const { data: listData } = useGetAdminListsQuery(undefined, { skip: !open });
 
   useEffect(() => {
     if (open) {
@@ -455,7 +469,7 @@ export default function CreateRuleModal({ open, onClose }) {
 
   // New API shape: { forms: [{ form_name, sources: [...], campaign_names: [...], adset_names: [...] }] }
   // Cascade: source → campaign → adset → form
-  const formsData = filtersData?.forms ?? [];
+  const formsData = useMemo(() => filtersData?.forms ?? [], [filtersData]);
 
   const sourceOpts = useMemo(() => {
     const acc = new Set();
@@ -568,6 +582,10 @@ export default function CreateRuleModal({ open, onClose }) {
     (o) => o.value === form.destination_campaign
   )?.label;
 
+  const listOpts = (listData?.rows ?? []).filter((l) =>
+    l.is_active && String(l.campaign_code || '').toLowerCase() === String(form.destination_campaign || '').toLowerCase());
+  const listLabel = listOpts.find((l) => String(l.id) === String(form.destination_list_id))?.name;
+
   const handleNext = () => {
     if (step === 1 && step1Valid) setStep(2);
     else if (step === 2 && step2Valid) setStep(3);
@@ -585,6 +603,7 @@ export default function CreateRuleModal({ open, onClose }) {
         // ad_set_name: form.adset_names,
         form_name: form.form_names,
         destination_campaign: form.destination_campaign,
+        destination_list_id: form.destination_list_id ? Number(form.destination_list_id) : null,
         startDate: form.startDate,
         endDate: form.endDate?.trim() || null,
         isActive: form.isActive,
@@ -675,7 +694,7 @@ export default function CreateRuleModal({ open, onClose }) {
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 text-[11px] font-medium text-emerald-300">
-                    <Infinity className="w-3 h-3" /> no expiry · realtime
+                    <InfinityIcon className="w-3 h-3" /> no expiry · realtime
                   </span>
                 )}
               </div>
@@ -760,7 +779,7 @@ export default function CreateRuleModal({ open, onClose }) {
                     )}
                   </div>
                   <div className="text-[10px] text-emerald-400/80 flex items-center gap-1">
-                    <Infinity className="w-3 h-3" /> Leave blank → routes forever in realtime
+                    <InfinityIcon className="w-3 h-3" /> Leave blank → routes forever in realtime
                   </div>
                 </div>
               </div>
@@ -914,9 +933,9 @@ export default function CreateRuleModal({ open, onClose }) {
                     <Target className="w-4 h-4 text-sky-300" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-slate-100">Pick the VICIdial destination</div>
+                    <div className="text-sm font-semibold text-slate-100">Pick the dialer destination</div>
                     <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                      Matched leads will be pushed into this VICIdial campaign for dialing.
+                      Matched leads will be pushed into this campaign for dialing.
                       You can pause or resume the rule at any time from the routing list.
                     </p>
                   </div>
@@ -925,19 +944,19 @@ export default function CreateRuleModal({ open, onClose }) {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Target className="w-3 h-3" /> VICIdial Destination <span className="text-rose-400">*</span>
+                  <Target className="w-3 h-3" /> Destination Campaign <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <select
                     value={form.destination_campaign}
-                    onChange={(e) => set('destination_campaign', e.target.value)}
+                    onChange={(e) => setForm((f) => ({ ...f, destination_campaign: e.target.value, destination_list_id: '' }))}
                     disabled={campaignListLoading}
                     className={`w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-200
                       focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/40 transition
                       [color-scheme:dark] appearance-none cursor-pointer disabled:opacity-40`}
                   >
                     <option value="" disabled hidden>
-                      {campaignListLoading ? 'Loading campaigns…' : 'Select a VICIdial campaign…'}
+                      {campaignListLoading ? 'Loading campaigns…' : 'Select a campaign…'}
                     </option>
                     {destinationOpts.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -949,8 +968,36 @@ export default function CreateRuleModal({ open, onClose }) {
                       : <ChevronDown className="w-3.5 h-3.5 text-slate-500" />}
                   </div>
                 </div>
-                <div className="text-[10px] text-slate-600">The VICIdial campaign that will receive these leads</div>
+                <div className="text-[10px] text-slate-600">The campaign that will receive these leads</div>
               </div>
+
+              {form.destination_campaign && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-slate-400 uppercase tracking-widest">List (optional)</label>
+                  <div className="relative">
+                    <select
+                      value={form.destination_list_id}
+                      onChange={(e) => set('destination_list_id', e.target.value)}
+                      className={`w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-200
+                        focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/40 transition
+                        [color-scheme:dark] appearance-none cursor-pointer`}
+                    >
+                      <option value="">The campaign's first active list</option>
+                      {listOpts.map((l) => (
+                        <option key={l.id} value={l.id}>{l.name} (#{l.id})</option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-slate-600">
+                    {listOpts.length
+                      ? 'Which of the campaign\'s lists these leads land in'
+                      : 'This campaign has no active list yet: add one on Dialer setup → Lead lists'}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-start gap-3 rounded-xl border border-white/8 bg-slate-950/40 px-4 py-3.5">
                 <button
@@ -968,7 +1015,7 @@ export default function CreateRuleModal({ open, onClose }) {
                   </div>
                   <div className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                     {form.isActive
-                      ? "The rule will start routing matching leads to VICIdial as soon as it's created."
+                      ? "The rule will start routing matching leads to the dialer as soon as it's created."
                       : "The rule will be saved but won't route anything until you flip it to active."}
                   </div>
                 </div>
@@ -1043,6 +1090,7 @@ export default function CreateRuleModal({ open, onClose }) {
         <ConfirmCreateModal
           form={form}
           destinationLabel={destinationLabel}
+          listLabel={listLabel}
           submitting={submitting || isLoading}
           onCancel={() => setConfirmOpen(false)}
           onConfirm={handleConfirmCreate}

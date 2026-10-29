@@ -1,5 +1,5 @@
 // Stringee's brand colours (#F5C50A0A in their Android theme is ARGB, i.e. red #C50A0A).
-// Used wherever a call carried by Stringee, not VICIdial, needs to stand out.
+// Used wherever a live Stringee call needs to stand out.
 export const STRINGEE = {
   red:    '#C50A0A',
   blue:   '#2196F3',
