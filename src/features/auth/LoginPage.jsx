@@ -1,12 +1,11 @@
 import { useRef, useState ,useEffect} from "react";
 import { Briefcase, ChevronDown, Loader2, Lock, User, Shield, Headset, Zap, PhoneCall, MessageCircle } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { dashboardApi, useGetCampaignsQuery, useLoginMutation } from "@/services";
 import { NEUTRAL_BRANDING, applyBranding } from "@/shared/theme/branding";
 import { setUser } from "@/features/auth/slices/authSlice";
 import { useDispatch } from "react-redux";
 import { Eye, EyeOff } from "lucide-react";
-import { useVicidialPopup } from "@/shared/context/VicidialPopupContext";
 import BrandMark from "@/shared/components/BrandMark";
 
 // What the workspace does, shown on the brand panel. Keep these true to the product:
@@ -47,15 +46,11 @@ export default function Login() {
   }, []);
 
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("agent"); // ✅ user chooses: "admin" | "agent"
   const [isSelectOpen, setIsSelectOpen] = useState(false);
-  const vicidialPopupRef = useRef(null);
-  const from = location.state?.from?.pathname;
   const [login, { isLoading }] = useLoginMutation();
-  const { openPopup } = useVicidialPopup();
   const [debouncedUsername, setDebouncedUsername] = useState("");
   // ✅ only fetch campaigns when agent
   const { data: campaingList, isLoading: campaingListLoading } = useGetCampaignsQuery(debouncedUsername, {
@@ -120,10 +115,6 @@ export default function Login() {
       };
 
       const res = await login(payload).unwrap();
-
-      if (role === "agent") {
-        openPopup();
-      }
 
       localStorage.setItem("user", JSON.stringify(res));
       // A fresh session: nothing cached under a previous login may be shown.

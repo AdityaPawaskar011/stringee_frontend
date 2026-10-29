@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 
-import { ibLabel, shortDate } from '@/features/reporting/utils';
+import { shortDate } from '@/features/reporting/utils';
 import RawDataCell from '@/features/reporting/components/RawDataCell';
 import BoolBadge from '@/features/reporting/components/BoolBadge';
 import DispositionBadge from '@/features/reporting/components/DispositionBadge';
@@ -15,21 +15,13 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 
 const RawFieldsCellRenderer = (p) => <RawDataCell data={p.value} />;
 
-// IB = the lead's form name carries "ib" — VICIdial's address1, which is form, campaign,
-// ad set and source joined by '_'. The server resolves it and sends `is_ib` on the row
-// (resolve_ib_by_form in api/services/vicidial.py), the same rule the dashboard's two
-// META panels count on.
-// Mirrors the hot-leads grid: valueGetter keeps 'Yes'/'No'/'' so sort, filter and export work.
-const IbCellRenderer = (p) => (
-  <BoolBadge value={p.value === 'Yes' ? true : p.value === 'No' ? false : null} />
-);
 
 const AgentCellRenderer = (p) => (
   <span className="text-xs text-foreground/80">{p.value || '—'}</span>
 );
 
-// Status of the lead's most recent dial (vicidial_log), falling back to the status it
-// carries in its VICIdial list when it was never dialed — the server resolves both into
+// Status of the lead's most recent dial, falling back to the status it carries in
+// its list when it was never dialed — the server resolves both into
 // `disposition`.
 const DispositionCellRenderer = (p) => <DispositionBadge value={p.value} />;
 
@@ -144,8 +136,8 @@ export default function MetaLeadsGrid({ rows }) {
         field: 'disposition',
         width: 150,
         headerTooltip:
-          'Status the most recent dial was closed with (vicidial_log). Leads that were '
-          + 'never dialed fall back to the status they carry in their VICIdial list.',
+          'Status the most recent dial was closed with. Leads that were '
+          + 'never dialed fall back to the status they carry in their list.',
         cellRenderer: DispositionCellRenderer,
       },
       {
@@ -166,26 +158,11 @@ export default function MetaLeadsGrid({ rows }) {
         cellRenderer: RawFieldsCellRenderer,
       },
       {
-        headerName: 'IB',
-        colId: 'is_ib',
-        width: 80,
-        headerTooltip:
-          'Introducing broker — Yes when the form name the lead is filed under carries ' +
-          '"ib" (VICIdial address1), No for every other form',
-        valueGetter: (p) => ibLabel(p.data?.is_ib),
-        tooltipValueGetter: (p) =>
-          p.data?.ib_source === 'form'
-            ? 'Not in VICIdial yet — reading the form name this lead will be pushed under'
-            : null,
-        cellClass: 'flex items-center',
-        cellRenderer: IbCellRenderer,
-      },
-      {
         headerName: 'Agent Name',
         colId: '__agent',
         width: 140,
         headerTooltip:
-          'Agent the lead is assigned to (vicidial_list.user), set the moment it arrives. ' +
+          'Agent the lead is assigned to, set the moment it arrives. ' +
           'Falls back to the agent who dialed it if the lead carries no assignment.',
         valueGetter: (p) =>
           p.data?.assigned_to || p.data?.assigned_user || p.data?.agent_name || p.data?.called_by || '',

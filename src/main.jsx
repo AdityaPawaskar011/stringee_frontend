@@ -1,7 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./app/App";
 import "./index.css";
-import { VicidialPopupProvider } from "@/shared/context/VicidialPopupContext";
 import { installGlobalErrorHandlers } from "@/shared/lib/errorLogger";
 import { bootBranding } from "@/shared/theme/branding";
 import { installCrossTabAuthSync } from "@/shared/lib/crossTabAuth";
@@ -13,4 +12,4 @@ installCrossTabAuthSync();
 // client's users never see another brand flash in first.
 bootBranding();
 
-createRoot(document.getElementById("root")).render(<VicidialPopupProvider><App /></VicidialPopupProvider>);
+createRoot(document.getElementById("root")).render(<App />);

@@ -19,7 +19,7 @@ const DISPOSITION_TONE = {
   WN:   'danger',   // Wrong Number
   FUC:  'primary',  // Follow Up
   INCALL: 'active', // In Call (internal-only status for live calls)
-  NEW:  'muted',    // VICIdial's own "never dialed" status — not an agent's answer
+  NEW:  'muted',    // the dialer's own "never dialed" status — not an agent's answer
 };
 
 const TONE_CLS = {
@@ -32,8 +32,8 @@ const TONE_CLS = {
 };
 
 /**
- * VICIdial disposition code rendered as "<label> (<code>)", tinted by outcome.
- * Unknown codes still render — VICIdial statuses are configurable, so anything not in
+ * Disposition code rendered as "<label> (<code>)", tinted by outcome.
+ * Unknown codes still render — dispositions are configurable, so anything not in
  * DISPOSITIONS shows the raw code in the neutral tone rather than an empty cell.
  */
 export default function DispositionBadge({ value }) {

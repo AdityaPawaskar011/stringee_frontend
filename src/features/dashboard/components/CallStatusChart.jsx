@@ -39,9 +39,6 @@ export function CallStatusChart({ callStatus ,CallStatusLoading = true}) {
       }));
   }, [breakdown]);
 
-  const inCallValue =
-    data.find(item => item.name === 'INCALL')?.value ?? 0;
-
   const hasData = data.length > 0;
 return CallStatusLoading ? (
     <SkeletonChart type="pie" height={200} />

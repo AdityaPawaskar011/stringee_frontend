@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ContactDetails from "./components/ContactDetails";
 import CallDispositionPopup from "./components/CallDispositionPopup";
@@ -6,10 +6,9 @@ import AgentLeadsPanel from "./components/AgentLeadsPanel";
 import CallbackListPanel from "./components/CallbackListPanel";
 import UserTimelineChart from "./components/AgentTimelineChart";
 
-import { useCallStatusQuery, useGetLogDataQuery, usePingQuery, useStatusDataQuery } from "@/services";
+import { useCallStatusQuery, usePingQuery } from "@/services";
 import { closeDispo, openDispo, CALL_STATE, PROVIDER, selectCallState, selectCurrentCall, selectShowDispo, setCurrentCallId, setIsCallbackDial } from "./slices/callSlice";
-import { selectIsAdmin, selectUser } from "@/features/auth/slices/authSlice";
-import { clearCurrentLead } from "./slices/dialSlice";
+import { selectIsAdmin } from "@/features/auth/slices/authSlice";
 import TotalDialsToday from "@/shared/components/TotalDialsToday";
 import { STRINGEE, stringeeGradient } from "@/shared/lib/stringeeBrand";
 
@@ -19,7 +18,6 @@ const STRINGEE_BG = `${stringeeGradient("59")}, hsl(231 58% 6%)`;
 export default function CallPage() {
   const isAdmin = useSelector(selectIsAdmin);
   const dispatch = useDispatch();
-  const user = useSelector(selectUser);
   const { isPaused } = useSelector(e => e.dial);
 
   usePingQuery(undefined, {
@@ -44,21 +42,12 @@ export default function CallPage() {
   }, [showDispo]);
 
   const shouldPollLog = callState === CALL_STATE.INCALL || callState === CALL_STATE.ENDING;
-  const [pollingEnabled, setPollingEnabled] = useState(false);
 
-  // Which dialer is carrying this call. VICIdial unless the server said
-  // otherwise, so the block below is unchanged for every existing call.
   const currentCall = useSelector(selectCurrentCall);
   const isStringee = currentCall.provider === PROVIDER.STRINGEE;
 
-  const { data: callStatusData } = useStatusDataQuery(undefined, {
-    skip: !shouldPollLog || isStringee,
-    pollingInterval: 2000,
-    refetchOnMountOrArgChange: true,
-  });
-
-  // Stringee's equivalent poller. A callout returns no call_id, so poll by our
-  // own ref_id until the carrier's first event fills the real one in.
+  // A callout returns no call_id, so poll by our own ref_id until the
+  // carrier's first event fills the real one in.
   const stringeeArgs = currentCall.id
     ? { call_id: currentCall.id }
     : currentCall.refId
@@ -91,29 +80,16 @@ export default function CallPage() {
     if (id && !currentCall.id) dispatch(setCurrentCallId(id));
   }, [dispatch, stringeeStatus, currentCall.id]);
 
-  const InCall_ReadyToDisconnect = isStringee
-    ? shouldPollLog && ["ringing", "answered"].includes(stringeeStatus?.data?.status)
-    : shouldPollLog && callStatusData
-      ? callStatusData?.data?.call_status === "IN_CALL" || callStatusData?.data?.call_status === "RINGING"
-      : false;
+  const InCall_ReadyToDisconnect =
+    shouldPollLog && ["ringing", "answered"].includes(stringeeStatus?.data?.status);
 
+  // The call is over once Stringee says so: time to disposition it.
   useEffect(() => {
     if (isAdmin) return;
-    if (isStringee) {
-      // The call is over once Stringee says so — that is this provider's
-      // DISPOSITION_PENDING.
-      if (stringeeStatus?.data?.finished) dispatch(openDispo());
-      return;
-    }
-    if (!callStatusData) return;
-    if (callStatusData.data?.call_status === "DISPOSITION_PENDING") {
-      dispatch(openDispo());
-      return;
-    }
-  }, [dispatch, isAdmin, isStringee, callStatusData, stringeeStatus]);
+    if (stringeeStatus?.data?.finished) dispatch(openDispo());
+  }, [dispatch, isAdmin, stringeeStatus]);
 
-  // Stringee theme while a Stringee call is live, so the agent can see at a
-  // glance which dialer is carrying the call. Colours are Stringee's brand set
+  // Stringee theme while a call is live. Colours are Stringee's brand set
   // (#F5C50A0A is Android ARGB, i.e. red #C50A0A).
   const isStringeeLive =
     isStringee && (callState === CALL_STATE.INCALL || callState === CALL_STATE.ENDING);

@@ -7,33 +7,44 @@ export const {
   useSubmitStatusMutation,
   usePingQuery,
   useUserTimelineQuery,
-  useStatusDataQuery,
   useSendMessageMutation,
   useCallStatusQuery,
   useLazyCallStatusQuery,
   useStringeeClientEventMutation,
   useStringeeClientTokenMutation,
+  useGetAgentStateQuery,
+  useSetAgentStateMutation,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
+    // The signed-in agent's state on the server: available | paused | in_call | wrap_up.
+    // /call, /hangup and /submit_status move it too, so they invalidate it.
+    getAgentState: builder.query({
+      query: () => '/agent/state',
+      providesTags: ['AgentState'],
+    }),
+    setAgentState: builder.mutation({
+      query: (body) => ({ url: '/agent/state', method: 'PUT', body }),
+      invalidatesTags: ['AgentState'],
+    }),
     dialNext: builder.mutation({
       query: (params = {}) => ({
         url: '/call',
         method: 'POST',
         params: Object.keys(params).length ? params : undefined,
       }),
+      invalidatesTags: ['AgentState'],
     }),
-    // params is {} for a VICIdial call — exactly the request this always made —
-    // and { call_id } for a Stringee one, which is what routes it to the right
-    // provider server-side.
+    // params is { call_id } or { ref_id } (selectCallRouteParams).
     callHangup: builder.mutation({
       query: (params = {}) => ({
         url: '/hangup',
         method: 'POST',
         params: Object.keys(params).length ? params : undefined,
       }),
+      invalidatesTags: ['AgentState'],
     }),
-    // Stringee's equivalent of /status_data. Poll by call_id, or by ref_id in
-    // the window before the carrier has told us the call_id.
+    // The call's live state. Poll by call_id, or by ref_id in the window
+    // before the carrier has told us the call_id.
     callStatus: builder.query({
       query: (params = {}) => ({ url: '/call_status', params }),
     }),
@@ -57,16 +68,13 @@ export const {
         method: 'POST',
         params: Object.keys(params).length ? params : undefined,
       }),
-      invalidatesTags: ['Leads', 'Dashboard', 'ManagerView', { type: 'HotMetaLeads', id: 'LIST' }],
+      invalidatesTags: ['Leads', 'Dashboard', 'ManagerView', 'AgentState', { type: 'HotMetaLeads', id: 'LIST' }],
     }),
     ping: builder.query({
       query: () => '/ping',
     }),
     userTimeline: builder.query({
       query: () => '/usertimeline',
-    }),
-    statusData: builder.query({
-      query: () => '/status_data',
     }),
     sendMessage: builder.mutation({
       query: (phone) => ({

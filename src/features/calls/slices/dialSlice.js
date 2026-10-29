@@ -1,11 +1,14 @@
 import { createSlice } from "@reduxjs/toolkit";
 import dayjs from "dayjs"
 
+// Seconds between one call's end and the next auto-dial.
+export const AUTO_DIAL_SECONDS = 30;
+
 const initialState = {
   currentLead: null, // <-- will store response.details
   isPaused: true,
   isAvailableLeads:false,
-  autoDialTime: dayjs().add(30, "seconds").valueOf(),
+  autoDialTime: dayjs().add(AUTO_DIAL_SECONDS, "seconds").valueOf(),
   formNameFilter: "",
 };
 
@@ -22,8 +25,12 @@ const dialSlice = createSlice({
     togglePause(state){
       state.isPaused = !state.isPaused
     },
+    // Mirrors the server's agent state (GET/PUT /agent/state, useAgentState).
+    setPaused(state, action){
+      state.isPaused = !!action.payload
+    },
     resetAutoDialTime(state){
-      state.autoDialTime = dayjs().add(30, "seconds").valueOf()
+      state.autoDialTime = dayjs().add(AUTO_DIAL_SECONDS, "seconds").valueOf()
     },
     setIsAvailableLeads(state, action){
       state.isAvailableLeads = action.payload
@@ -34,7 +41,7 @@ const dialSlice = createSlice({
   },
 });
 
-export const { setCurrentLead, clearCurrentLead, togglePause, resetAutoDialTime,setIsAvailableLeads, setFormNameFilter } = dialSlice.actions;
+export const { setCurrentLead, clearCurrentLead, togglePause, setPaused, resetAutoDialTime,setIsAvailableLeads, setFormNameFilter } = dialSlice.actions;
 export default dialSlice.reducer;
 
 export const selectCurrentLead = (state) => state.dial.currentLead;

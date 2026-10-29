@@ -10,7 +10,7 @@ import {
 } from '@/services';
 
 // Platform → Companies (platform admins only, api/routers/platform.py): create companies
-// and move any VICIdial login to a company. A login's company decides everything it sees.
+// and move any login to a company. A login's company decides everything it sees.
 
 const inputClass =
   'w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm text-foreground ' +
@@ -178,7 +178,7 @@ function Agents() {
   };
 
   return (
-    <Card icon={Users} title="Logins" subtitle="Every VICIdial login and the company it works for">
+    <Card icon={Users} title="Logins" subtitle="Every login and the company it works for">
       <div className="flex flex-wrap items-center gap-3">
         <label className="relative flex-1 min-w-[220px]">
           <Search className="pointer-events-none absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />

@@ -13,8 +13,8 @@ import { useDialNextMutation } from "@/services";
 /**
  * Dial one number the agent picked - the call page's manual-dial box and the
  * Reporting page's Call button both go through here, so a call started from
- * either is the same call: same /call request (lead lookup, Stringee or
- * VICIdial routing), same call state, same dispo afterwards.
+ * either is the same call: same /call request (lead lookup), same call state,
+ * same dispo afterwards.
  *
  * After a successful dial it opens /call when the agent is elsewhere: the call
  * page is what polls the call's state and opens the disposition box.
@@ -36,12 +36,6 @@ export function useDialNumber() {
       dispatch(setCallState(CALL_STATE.DIALING));
 
       const res = await dialNext({ phone }).unwrap();
-
-      if (res?.vicidial_response?.toLowerCase?.().includes("error")) {
-        alert(res.vicidial_response);
-        dispatch(setCallState(CALL_STATE.IDLE));
-        return false;
-      }
       dispatch(setCurrentCallFromDial(res));
       dispatch(setCurrentLead(buildManualLead(res?.details, phone)));
       dispatch(setIsCallbackDial(false)); // a manual call, not a callback

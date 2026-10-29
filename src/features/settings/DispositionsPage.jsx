@@ -3,7 +3,6 @@ import { ListChecks, ArrowUp, ArrowDown, Trash2, Plus, Eye, EyeOff, CalendarCloc
 import { useToast } from '@/shared/hooks/useToast';
 import {
   useGetDispositionSettingsQuery,
-  useGetVicidialCodesQuery,
   useGetSuggestedCodeQuery,
   useCreateDispositionMutation,
   useUpdateDispositionMutation,
@@ -13,8 +12,7 @@ import {
 
 // Settings → Dispositions: the call outcomes the company's agents choose from
 // (api/routers/dispositions.py). A row without a campaign applies to every campaign;
-// a campaign row overrides it for that campaign only. A code VICIdial does not have
-// yet is created there for the company's campaigns when it is saved.
+// a campaign row overrides it for that campaign only.
 
 const inputClass =
   'w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm text-foreground ' +
@@ -91,11 +89,10 @@ function Row({ row, campaigns, colors, first, last, onMove, onSave, onDelete, bu
   );
 }
 
-function AddForm({ campaigns, colors, codes, onAdd, busy }) {
+function AddForm({ campaigns, colors, onAdd, busy }) {
   const empty = { status: '', label: '', color: 'slate', campaign_id: '', is_callback: false };
   const [form, setForm] = useState(empty);
   const typed = form.status.trim().toUpperCase();
-  const known = codes.find((c) => c.status === typed);
 
   // Code left blank: preview the new code the server will make from the label.
   const [debouncedLabel, setDebouncedLabel] = useState('');
@@ -119,16 +116,12 @@ function AddForm({ campaigns, colors, codes, onAdd, busy }) {
       <div className="grid gap-3 md:grid-cols-[120px_minmax(160px,1fr)_160px]">
         <div className="space-y-1">
           <label className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Code (optional)</label>
-          <input className={inputClass} list="vicidial-codes" maxLength={6} placeholder={suggested || 'auto'}
+          <input className={inputClass} maxLength={6} placeholder={suggested || 'auto'}
             value={form.status}
             onChange={(e) => {
               const status = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-              const hit = codes.find((c) => c.status === status);
-              setForm((f) => ({ ...f, status, label: f.label || (hit?.name ?? '').slice(0, 30) }));
+              setForm((f) => ({ ...f, status }));
             }} />
-          <datalist id="vicidial-codes">
-            {codes.map((c) => <option key={c.status} value={c.status}>{c.name}</option>)}
-          </datalist>
         </div>
         <div className="space-y-1">
           <label className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Label agents see</label>
@@ -152,11 +145,9 @@ function AddForm({ campaigns, colors, codes, onAdd, busy }) {
           Callback (asks for a date &amp; time)
         </label>
         <p className="text-xs text-muted-foreground flex-1 min-w-[200px]">
-          {known
-            ? `Uses VICIdial's existing ${typed}${known.name ? ` (${known.name})` : ''}.`
-            : code
-              ? `New code ${code}${typed ? '' : ' (made from the label)'}: it will be created in VICIdial for ${form.campaign_id || 'all your campaigns'}.`
-              : 'Type a label. Leave Code blank to get a new one, or pick an existing VICIdial code.'}
+          {code
+            ? `New code ${code}${typed ? '' : ' (made from the label)'} for ${form.campaign_id || 'all your campaigns'}.`
+            : 'Type a label. Leave Code blank to get a new one.'}
         </p>
         <button type="submit" disabled={busy || !form.label.trim()}
           className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold
@@ -171,7 +162,6 @@ function AddForm({ campaigns, colors, codes, onAdd, busy }) {
 export default function DispositionsPage() {
   const { success, error } = useToast();
   const { data, isLoading, error: loadError } = useGetDispositionSettingsQuery();
-  const { data: codes = [] } = useGetVicidialCodesQuery();
   const [createDisposition, { isLoading: creating }] = useCreateDispositionMutation();
   const [updateDisposition, { isLoading: updating }] = useUpdateDispositionMutation();
   const [deleteDisposition, { isLoading: deleting }] = useDeleteDispositionMutation();
@@ -182,15 +172,10 @@ export default function DispositionsPage() {
   const campaigns = data?.campaigns ?? [];
   const colors = data?.colors ?? Object.keys(SWATCH);
 
-  const added = (res) => {
-    const where = res?.vicidial_added_to ?? [];
-    return where.length ? ` · created in VICIdial for ${where.join(', ')}` : '';
-  };
-
   const onAdd = async (body) => {
     try {
       const res = await createDisposition(body).unwrap();
-      success(`${body.label} added as ${res.status}${added(res)}`);
+      success(`${body.label} added as ${res.status}`);
       return true;
     } catch (e) { error(apiError(e, 'Could not add the disposition')); return false; }
   };
@@ -198,7 +183,7 @@ export default function DispositionsPage() {
   const onSave = async (row, patch) => {
     try {
       const res = await updateDisposition({ id: row.id, ...patch }).unwrap();
-      success(`${res.label} saved${added(res)}`);
+      success(`${res.label} saved`);
     } catch (e) { error(apiError(e, 'Could not save')); }
   };
 
@@ -255,7 +240,7 @@ export default function DispositionsPage() {
                 <li className="text-sm text-muted-foreground">No dispositions yet. Agents cannot close a call until you add one.</li>
               )}
             </ul>
-            <AddForm campaigns={campaigns} colors={colors} codes={codes} onAdd={onAdd} busy={busy} />
+            <AddForm campaigns={campaigns} colors={colors} onAdd={onAdd} busy={busy} />
           </>
         )}
       </div>

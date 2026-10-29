@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { isValidPhone, normalizePhone } from "@/features/calls/lib/manualDial";
 import { useDialNumber } from "@/features/calls/hooks/useDialNumber";
 import { useDispatch, useSelector } from "react-redux";
@@ -11,7 +11,15 @@ import { selectMaskPii } from "@/features/auth/slices/authSlice";
 import { maskEmail, maskPhone } from "@/shared/lib/mask";
 import { phoneCountry, flagUrl } from "@/shared/lib/phoneCountry";
 import { hangup as stringeeHangup } from "@/features/calls/lib/stringeePhone";
-// vicidial_list.entry_date arrives as an ISO timestamp through jsonable_encoder.
+import { dialErrorMessage, hasCallId } from "@/features/calls/lib/dialError";
+
+// How Dial Next picked this lead (/call queue_step).
+const QUEUE_BADGE = {
+  callback: { label: "Callback", cls: "border-sky-400/40 bg-sky-500/15 text-sky-100" },
+  redial:   { label: "Redial",   cls: "border-amber-400/40 bg-amber-500/15 text-amber-100" },
+  fresh:    { label: "New lead", cls: "border-emerald-400/40 bg-emerald-500/15 text-emerald-100" },
+};
+// The lead's entry_date arrives as an ISO timestamp.
 // Rendered as "7 Sep 2026, 6:07 pm" — the time matters to an agent deciding how
 // fresh a lead is. Anything unparseable is shown as it came rather than as "—",
 // so a bad value is visible instead of looking like missing data.
@@ -46,33 +54,6 @@ function CountryChip({ country, boxed = false }) {
   );
 }
 
-function CountdownRing({ seconds, total }) {
-  const r = 9;
-  const circ = 2 * Math.PI * r;
-  const frac = Math.max(0, Math.min(1, seconds / total));
-  return (
-    <span className="relative inline-flex h-6 w-6 items-center justify-center text-destructive">
-      <svg viewBox="0 0 24 24" className="absolute inset-0 -rotate-90">
-        <circle cx="12" cy="12" r={r} fill="none" strokeWidth="2" className="stroke-white/10" />
-        <circle
-          cx="12"
-          cy="12"
-          r={r}
-          fill="none"
-          strokeWidth="2"
-          strokeLinecap="round"
-          className="stroke-current transition-[stroke-dashoffset] duration-1000 ease-linear"
-          strokeDasharray={circ}
-          strokeDashoffset={circ * (1 - frac)}
-        />
-      </svg>
-      <span className="text-[10px] font-bold tabular-nums">{seconds}</span>
-    </span>
-  );
-}
-
-const LOCK_SECONDS = 60;
-
 function ContactDetails({inCallLogData}) {
   const dispatch = useDispatch();
 
@@ -80,44 +61,18 @@ function ContactDetails({inCallLogData}) {
   const maskPii = useSelector(selectMaskPii);
   const callState = useSelector(selectCallState);
   const isCallBusy = useSelector(selectIsCallBusy);
-  // {} for a VICIdial call, { call_id } for a Stringee one.
+  // { call_id } or { ref_id } of the call on screen.
   const callRouteParams = useSelector(selectCallRouteParams);
-  // Stringee sends no live ringing/answered status, so a Stringee call can be
-  // ended from the moment it is placed — no wait for the log, no 60s lock.
+  // A call can be ended from the moment it is placed - no wait for the log.
   const isStringee = useSelector(selectIsStringeeCall);
   const canEnd = isStringee || inCallLogData;
   const [callHangup, { isLoading: isHangingUp }] = useCallHangupMutation();
   // Same dial as the Reporting page's Call button (hooks/useDialNumber).
   const { dialNumber, isDialing } = useDialNumber();
-  const [notes, setNotes] = useState("");
   const [manualPhone, setManualPhone] = useState("");
   const isInCall = callState === CALL_STATE.INCALL;
   const isEnding = callState === CALL_STATE.ENDING;
   const isBusy = isHangingUp || callState === CALL_STATE.DIALING;
-
-  // Lock END CALL for the first 60s after the call connects, with a countdown.
-  const isConnected = isInCall && inCallLogData && !isStringee;
-  const [lockSeconds, setLockSeconds] = useState(0);
-
-  useEffect(() => {
-    if (!isConnected) {
-      setLockSeconds(0);
-      return;
-    }
-    setLockSeconds(LOCK_SECONDS);
-    const id = setInterval(() => {
-      setLockSeconds((s) => {
-        if (s <= 1) {
-          clearInterval(id);
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isConnected]);
-
-  const isLocked = lockSeconds > 0;
 
   const callPhone = lead?.phone_number?.replace(/\D/g, "") || null;
   const { data: metaLead, isFetching: isLoadingMeta } = useGetMetaLeadByPhoneQuery(callPhone, {
@@ -144,20 +99,20 @@ function ContactDetails({inCallLogData}) {
 
   const handleEndCall = async () => {
     if (!isInCall && !canEnd) return;
-    if (isLocked) return; // ✅ honor the 60s post-connect lock
 
     dispatch(setCallState(CALL_STATE.ENDING)); // ✅ keep log polling ON
     try {
-      // {} for VICIdial, { call_id } for Stringee.
       const hangupArgs = callRouteParams;
-      // Browser-placed Stringee call: drop it in this tab first. A no-op for
-      // every other call.
+      // Browser-placed call: drop it in this tab first. A no-op when the SDK
+      // holds no call.
       if (isStringee) await stringeeHangup();
-      await (callHangup(hangupArgs).unwrap?.() ?? callHangup(hangupArgs));
-      // DO NOT set IDLE here. Wait for log uniqueid -> dispo popup
+      // /hangup needs the call's id (422 without one); /call always returns ref_id.
+      if (!hasCallId(hangupArgs)) throw { status: 422, data: { detail: "This call has no id - it was not placed." } };
+      await callHangup(hangupArgs).unwrap();
+      // DO NOT set IDLE here. Wait for /call_status finished -> dispo popup
     } catch (e) {
       dispatch(setCallState(CALL_STATE.INCALL));
-      alert("Failed to end call.");
+      alert(dialErrorMessage(e, "Failed to end call."));
     }
   };
   const manualHasNumber = isValidPhone(normalizePhone(manualPhone));
@@ -253,6 +208,14 @@ function ContactDetails({inCallLogData}) {
                   <div className="flex items-center gap-3">
                     <div className="text-3xl font-semibold text-slate-100 tracking-wide">
                       {displayName}
+                      {QUEUE_BADGE[lead?.queue_step] && (
+                        <span
+                          className={`ml-2 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${QUEUE_BADGE[lead.queue_step].cls}`}
+                          title={lead?.callback?.comments ? `Callback note: ${lead.callback.comments}` : undefined}
+                        >
+                          {QUEUE_BADGE[lead.queue_step].label}
+                        </span>
+                      )}
                     </div>
 
                     {/* Active badge like screenshot */}
@@ -357,10 +320,8 @@ function ContactDetails({inCallLogData}) {
                       </>
                     )}
 
-                    {/* No meta_leads row for this number — 186 leads in the two Meta
-                        lists since 13 Jul are in that state, most of them inserted
-                        straight into vicidial_list by something other than the Meta
-                        push. The form ANSWERS only exist in meta_leads and cannot be
+                    {/* No meta_leads row for this number: the lead was inserted
+                        into its list by something other than the Meta push. The form ANSWERS only exist in meta_leads and cannot be
                         recovered, but the delivery chain is on the lead itself:
                         address1 = form_adset_ad, address2 = campaign_adset_ad_source.
                         Showing that beats showing nothing, and says plainly why the
@@ -406,32 +367,21 @@ function ContactDetails({inCallLogData}) {
               {/* END CALL (real logic) */}
               <button
                 onClick={handleEndCall}
-                disabled={!lead || !isInCall || isBusy || callState === CALL_STATE.DISPO || !canEnd || isLocked}
+                disabled={!lead || !isInCall || isBusy || callState === CALL_STATE.DISPO || !canEnd}
                 className={`rounded-xl border px-5 py-2.5 font-semibold flex items-center justify-center gap-2 transition-smooth active:scale-[0.97]
                   ${
-                    isLocked
-                      ? "border-destructive/15 bg-destructive/5 text-destructive/70"
-                      : isInCall || isEnding
+                    isInCall || isEnding
                       ? "border-rose-400/20 bg-rose-500/10 text-rose-200 hover:bg-rose-500/15"
                       : "border-white/10 bg-white/5 text-white/40"
                   }
                   disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {isLocked ? (
-                  <>
-                    <CountdownRing seconds={lockSeconds} total={LOCK_SECONDS} />
-                    END CALL
-                  </>
+                {isEnding || isHangingUp ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <>
-                    {isEnding || isHangingUp ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <PhoneOff className="w-4 h-4" />
-                    )}
-                    {isEnding ? "ENDING..." : "END CALL"}
-                  </>
+                  <PhoneOff className="w-4 h-4" />
                 )}
+                {isEnding ? "ENDING..." : "END CALL"}
               </button>
             </div>
 

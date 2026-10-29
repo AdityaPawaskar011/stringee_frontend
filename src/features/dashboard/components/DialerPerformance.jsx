@@ -24,19 +24,10 @@ const toSparkData = (arr) => arr?.map(v => ({ v })) || sparkData
 /* ------------------ MAIN COMPONENT ------------------ */
 const num = (v) => Number(v ?? 0);
 export default function DialerPerformance({ data, isLoading ,graphData,isGraphDataLoading}) {
-  /* ------------------ STATES ------------------ */
-
-  if (isLoading || isGraphDataLoading) {
-    return <LoadingState />
-  }
-
-  if (!data?.data?.length || !graphData) {
-    return <EmptyState />
-  }
-
   /* ------------------ SAFE DATA ------------------ */
 
-  const s = data.data[0] ?? {
+  // Read defensively: the hooks below must run before the early returns.
+  const s = data?.data?.[0] ?? {
     dial_level: 0,
     calls_per_agent_per_hour: 0,
     drop_rate_percent: 0,
@@ -55,6 +46,16 @@ export default function DialerPerformance({ data, isLoading ,graphData,isGraphDa
     () => [{ full: 100, value: dialValue }],
     [dialValue]
   )
+
+  /* ------------------ STATES ------------------ */
+
+  if (isLoading || isGraphDataLoading) {
+    return <LoadingState />
+  }
+
+  if (!data?.data?.length || !graphData) {
+    return <EmptyState />
+  }
 
   /* ------------------ RENDER ------------------ */
 
@@ -123,7 +124,7 @@ function Header() {
   )
 }
 
-function Gauge({ value, rawValue, gaugeData }) {
+function Gauge({ rawValue, gaugeData }) {
   return (
     <div className="relative h-[140px]">
       <ResponsiveContainer width="100%" height="100%">

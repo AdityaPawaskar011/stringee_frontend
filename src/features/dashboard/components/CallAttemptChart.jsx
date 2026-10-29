@@ -1,8 +1,8 @@
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import { PhoneCall } from 'lucide-react';
 import dayjs from 'dayjs';
 
-import { IB_FILTERS, IB_LABELS, useGetMetaLeadIbAttemptsQuery } from '@/services';
+import { useGetMetaLeadIbAttemptsQuery } from '@/services';
 
 import { META_COHORT_START } from '../metaCohort';
 
@@ -54,8 +54,6 @@ function axisTicks(max) {
 }
 
 function CallAttemptChartImpl() {
-  const [ib, setIb] = useState('all');
-
   // Same arg shape the section uses, so RTK Query serves both from one cache entry.
   // Matched to the section's 60s cadence — at two minutes this card lagged behind the
   // tiles it sits beside, and both describe the same cohort. Focus-skipping is off for
@@ -65,7 +63,7 @@ function CallAttemptChartImpl() {
     { pollingInterval: 60000, skipPollingIfUnfocused: false },
   );
 
-  const side = data?.breakdown?.[ib] || {};
+  const side = data?.breakdown?.all || {};
   const {
     numbers = 0,
     total_attempts: totalDials = 0,
@@ -93,23 +91,6 @@ function CallAttemptChartImpl() {
             <span className="mx-1.5 text-slate-600">·</span>
             since {dayjs(META_COHORT_START).format('D MMM YYYY')}
           </p>
-        </div>
-
-        {/* Served from the same cached response, so switching sides is instant */}
-        <div className="inline-flex items-center rounded-md border border-border bg-card/40 p-0.5">
-          {IB_FILTERS.map((key) => (
-            <button
-              key={key}
-              onClick={() => setIb(key)}
-              className={`rounded px-2 py-0.5 text-[11px] transition-smooth ${
-                ib === key
-                  ? 'border border-primary/40 bg-primary/15 text-primary font-semibold'
-                  : 'border border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {IB_LABELS[key]}
-            </button>
-          ))}
         </div>
       </div>
 

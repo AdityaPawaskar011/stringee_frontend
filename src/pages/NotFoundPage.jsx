@@ -1,4 +1,4 @@
-import { useLocation, useNavigate, NavLink } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import { ArrowLeft, Home, AlertTriangle, ChevronRight } from "lucide-react";
 import { useSelector } from "react-redux";
 import { selectIsAdmin, selectUser } from "@/features/auth/slices/authSlice";
@@ -13,7 +13,6 @@ const agentQuickLinks = [{ name: "Call Workspace", path: "/call" }];
 
 export default function NotFoundPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const user = useSelector(selectUser);
   const isAdmin = useSelector(selectIsAdmin);
 

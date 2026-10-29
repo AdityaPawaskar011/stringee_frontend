@@ -23,7 +23,13 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Capitalised names are components; destructured args like `icon: Icon` are used as JSX.
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z_]' }],
     },
+  },
+  {
+    // Build configs run in Node, not the browser.
+    files: ['*.config.js'],
+    languageOptions: { globals: globals.node },
   },
 ])

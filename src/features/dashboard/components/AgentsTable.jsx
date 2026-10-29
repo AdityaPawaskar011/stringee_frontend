@@ -24,6 +24,45 @@ const LEAD_FILTER_ARG = { all: undefined, meta: { meta: "all" }, new: { meta: "n
 const EMPTY_ROWS = [];
 const getRowId = (p) => String(p.data.USER_ID);
 
+const hhmmssToMinutes = (time) => {
+  if (!time) return 0;
+  const [hh, mm, ss] = time.split(":").map(Number);
+  return hh * 60 + mm + ss / 60;
+};
+const StatusRenderer = (params) => {
+  const status = params.value ?? "OFFLINE";
+  const talkTime = params.data?.TALK_TIME_HH_MM_SS;
+
+  const minutes = hhmmssToMinutes(talkTime);
+
+  let className =
+    "px-2 py-1 rounded text-xs font-semibold whitespace-nowrap";
+
+  if (status === "PAUSED") {
+    if (minutes < 3) {
+      className += " bg-emerald-500/20 text-emerald-400";
+    } else if (minutes <= 10) {
+      className += " bg-amber-500/20 text-amber-400";
+    } else {
+      className +=
+        " bg-red-500/20 text-red-400 animate-pulse";
+    }
+  } else {
+    const statusClasses = {
+      READY: " bg-emerald-500/25 text-emerald-300",
+      INCALL: " bg-blue-500/20 text-blue-400",
+      DIALING: " bg-sky-500/20 text-sky-300",
+      DISPO: " bg-violet-500/20 text-violet-300",
+      OFFLINE: " bg-slate-500/20 text-slate-400",
+    };
+
+    className += statusClasses[status] ||
+      " bg-slate-600/20 text-slate-300";
+  }
+
+  return <span className={className}>{status}</span>;
+};
+
 export function AgentsTable() {
   // Lead filter. "meta": calls to any Meta lead (incl. redials of older ones);
   // "new": only Meta leads that arrived in the selected dates - the cohort the
@@ -39,45 +78,6 @@ export function AgentsTable() {
     const dispatch = useDispatch();
   const rowData = data?.data || EMPTY_ROWS;
   const activeUsername = useSelector(selectUsername);
-  const hhmmssToMinutes = (time) => {
-    if (!time) return 0;
-    const [hh, mm, ss] = time.split(":").map(Number);
-    return hh * 60 + mm + ss / 60;
-  };
-  const StatusRenderer = (params) => {
-    const status = params.value ?? "OFFLINE";
-    const talkTime = params.data?.TALK_TIME_HH_MM_SS;
-
-    const minutes = hhmmssToMinutes(talkTime);
-
-    let className =
-      "px-2 py-1 rounded text-xs font-semibold whitespace-nowrap";
-
-    if (status === "PAUSED") {
-      if (minutes < 3) {
-        className += " bg-emerald-500/20 text-emerald-400";
-      } else if (minutes <= 10) {
-        className += " bg-amber-500/20 text-amber-400";
-      } else {
-        className +=
-          " bg-red-500/20 text-red-400 animate-pulse";
-      }
-    } else {
-      const statusClasses = {
-        READY: " bg-emerald-500/25 text-emerald-300",
-        INCALL: " bg-blue-500/20 text-blue-400",
-        // Stringee states (VICIdial shows these agents as PAUSED throughout).
-        DIALING: " bg-sky-500/20 text-sky-300",
-        DISPO: " bg-violet-500/20 text-violet-300",
-        OFFLINE: " bg-slate-500/20 text-slate-400",
-      };
-
-      className += statusClasses[status] ||
-        " bg-slate-600/20 text-slate-300";
-    }
-
-    return <span className={className}>{status}</span>;
-  };
   const StarRenderer = (params) => {
   const rating = params.value ?? 0;
   const maxStars = 5;

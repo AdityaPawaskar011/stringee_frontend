@@ -12,7 +12,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
-    port: 5500,
+    // 5502 for this dialer (5500/5501 belong to the other dialer on this machine).
+    port: 5501,
   },
   resolve: {
     alias: {

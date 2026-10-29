@@ -53,21 +53,27 @@ const round1 = (n) => Math.round(n * 10) / 10;
 
 const truthy = (v) => v === true || v === 'true' || v === 1 || v === '1' || v === 'yes' || v === 'Yes';
 
-// VICIdial status codes, as this dialer actually uses them (vicidial_statuses +
-// vicidial_campaign_statuses). Interested is 'IN' — the old check for 'INTR' never matched.
+// Disposition codes. The company's own list (Settings → Dispositions) only marks which
+// codes are callbacks, so the other groups are the standard codes (IN, NI, B, INVN, ...).
 const STATUS = {
   interested: ['IN', 'SALE', 'CON'],
   notInterested: ['NI', 'DNC', 'DEC', 'NP'],
   callback: ['CBR', 'CBHOLD', 'CALLBK', 'FUC'],
-  noAnswer: ['N', 'NA', 'B', 'AB', 'AA', 'AM', 'AL'],
-  invalid: ['INVN', 'WN', 'DC', 'D', 'ADC', 'ADCT'],
+  noAnswer: ['N', 'NA', 'B'],
+  invalid: ['INVN', 'WN', 'DC', 'D'],
   // Set by the dialer itself, not chosen by an agent — the agent has not given the lead a
   // result yet. Counting these made "Result Saved" equal every lead called.
-  undispositioned: [
-    'NEW', 'INCALL', 'QUEUE', 'DISPO', 'AB', 'AA', 'NA', 'AL', 'AM', 'AFAX', 'ADC', 'ADCT',
-    'DROP', 'PDROP', 'XDROP', 'ERI', 'LRERR', 'IQNANQ', 'TIMEOT',
-  ],
+  undispositioned: ['NEW', 'INCALL', 'DROP'],
 };
+
+/** Adds the company's callback codes (dispositions with is_callback) to the callback group. */
+export function addCompanyCallbackCodes(dispositions) {
+  for (const d of dispositions ?? []) {
+    const code = String(d.status || '').toUpperCase();
+    if (d.is_callback && code && !STATUS.callback.includes(code)) STATUS.callback.push(code);
+  }
+}
+
 const statusIn = (r, list) => list.includes(String(r.vici_lead_status || '').toUpperCase());
 
 const saysNotInterested = (r) => /not\s*interest/i.test(r.response || '');
@@ -374,7 +380,7 @@ function sumRawNumeric(leads, candidates) {
   for (const l of leads) {
     const v = pickRawValue(l.raw, candidates);
     if (v == null) continue;
-    const n = Number(String(v).replace(/[^0-9.\-]/g, ''));
+    const n = Number(String(v).replace(/[^0-9.-]/g, ''));
     if (Number.isFinite(n)) sum += n;
   }
   return sum;

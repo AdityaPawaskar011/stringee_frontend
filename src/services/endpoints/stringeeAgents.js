@@ -1,6 +1,6 @@
 import { dashboardApi } from '../api';
 
-// Admin mapping between a VICIdial login and a StringeeX agent
+// Admin mapping between a login and a StringeeX agent
 // (backend: api/routers/stringee.py). Until an agent has a row here, dialling
 // a +91 number fails with "You are not linked to a StringeeX agent yet"
 // (api/routers/calling.py) — this is the screen that fixes that.
@@ -14,7 +14,7 @@ export const {
   useSetStringeeAgentNumberMutation,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
-    // One request feeds the whole screen: the StringeeX roster, the VICIdial
+    // One request feeds the whole screen: the StringeeX roster, the agent
     // roster, and the mappings that already join them.
     getStringeeAgents: builder.query({
       query: () => ({ url: '/stringee/agents' }),

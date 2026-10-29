@@ -3,14 +3,12 @@ import { Loader2, LogOut, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { hideSessionPopup, setLoading } from "@/features/auth/slices/sessionSlice";
 import { clearUser } from "@/features/auth/slices/authSlice";
-import { dashboardApi, setSessionExpired, useLoginMutation, useRefreshMutation } from "@/services";
-import { useVicidialPopup } from "@/shared/context/VicidialPopupContext";
+import { dashboardApi, setSessionExpired, useRefreshMutation } from "@/services";
 
 export default function SessionPopup() {
   const dispatch = useDispatch();
   const { expired, loading } = useSelector((s) => s.session);
   const [refresh] = useRefreshMutation();
-  const { closePopup } = useVicidialPopup();
   const navigate = useNavigate();
   if (!expired) return null;
 
@@ -33,7 +31,7 @@ export default function SessionPopup() {
       setSessionExpired(false);
       dispatch(dashboardApi.util.resetApiState());
       dispatch(hideSessionPopup());
-    } catch (err) {
+    } catch {
       handleLogout();
     } finally {
       dispatch(setLoading(false));
@@ -42,7 +40,6 @@ export default function SessionPopup() {
 
   const handleLogout = () => {
     setSessionExpired(false);
-    closePopup();
     dispatch(clearUser());
     dispatch(hideSessionPopup());
     navigate("/login", { replace: true });

@@ -3,7 +3,6 @@
 export { dashboardApi } from './api';
 export { setSessionExpired, getSessionExpired } from './baseQuery';
 
-export * from './endpoints/ib';
 export * from './endpoints/auth';
 export * from './endpoints/dashboard';
 export * from './endpoints/calls';
@@ -24,3 +23,4 @@ export * from './endpoints/settings';
 export * from './endpoints/dispositions';
 export * from './endpoints/platform';
 export * from './endpoints/callQuality';
+export * from './endpoints/admin';
