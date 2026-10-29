@@ -1,4 +1,5 @@
 import {
+  AudioLines,
   Ban,
   BarChart3,
   Bot,
@@ -18,7 +19,6 @@ import {
   PhoneCall,
   Route,
   Send,
-  SignalHigh,
   ShieldCheck,
   Smartphone,
   Upload,
@@ -36,7 +36,6 @@ export const DATE_PICKER_HIDDEN_PATHS = [
   "/manager-view",
   "/whatsapp-automation",
   "/double-tick",
-  "/gsm-status",
   "/stringee-agents",
   "/settings/integrations",
   "/settings/dispositions",
@@ -47,6 +46,7 @@ export const DATE_PICKER_HIDDEN_PATHS = [
   "/admin/lists",
   "/admin/leads",
   "/admin/dnc",
+  "/manual-analysis",
 ];
 
 /**
@@ -54,7 +54,7 @@ export const DATE_PICKER_HIDDEN_PATHS = [
  * sidebar, the mobile drawer and the top-bar page title all read from here.
  *
  * Item shape: { name, path, icon, description?, end?, children?, requires? }
- *  - `requires` names an integration ("whatsapp", "stringee", "gsm", "email", "doubletick");
+ *  - `requires` names an integration ("whatsapp", "stringee", "email", "doubletick");
  *    the item is hidden when the user's company does not have it (selectIntegrations).
  *  - `description` is the one-line subtitle the top bar shows under the title.
  *  - `end: true` makes the NavLink match exactly (needed for "/", which would
@@ -96,7 +96,6 @@ function baseNavGroups({ isAdmin, isWhatsappAdmin, isCompanyAdmin }) {
           { name: "Dashboard", path: "/", icon: LayoutDashboard, end: true, description: "Live dialling, connects and lead flow at a glance" },
           { name: "Agent Productivity", path: "/selective", icon: Gauge, description: "Who is dialling, talking and converting" },
           { name: "Manager View", path: "/manager-view", icon: UserCog, description: "Campaign, ad and lead performance in one view" },
-          { name: "GSM Gateways", path: "/gsm-status", icon: SignalHigh, description: "SIM and trunk availability, live", requires: "gsm" },
           { name: "Agent Mapping", path: "/stringee-agents", icon: Link2, description: "Link agents to their Stringee users and numbers", requires: "stringee" },
         ],
       },
@@ -126,7 +125,13 @@ function baseNavGroups({ isAdmin, isWhatsappAdmin, isCompanyAdmin }) {
       },
       {
         label: "Reports",
-        items: [{ name: "Reporting", path: "/reporting", icon: BarChart3, description: "Hot leads, call outcomes and recordings" }],
+        items: [
+          { name: "Reporting", path: "/reporting", icon: BarChart3, description: "Hot leads, call outcomes and recordings" },
+          // Uploads are the company's own and cost OpenAI credit: company admins only (the API agrees).
+          ...(isCompanyAdmin
+            ? [{ name: "Manual Analysis", path: "/manual-analysis", icon: AudioLines, description: "Upload call recordings and score them with the call-quality AI" }]
+            : []),
+        ],
       },
       // Dialer setup and company settings: only a company-wide admin (the API agrees).
       ...(isCompanyAdmin ? [{

@@ -9,7 +9,7 @@ import { getCompanyView, setCompanyView } from '@/shared/lib/companyView';
 export const COMPANY_SCOPED_PATHS = [
   '/settings/integrations', '/settings/dispositions', '/whatsapp-sessions', '/whatsapp-login',
   '/whatsapp-automation', '/wa-api', '/email-templates', '/agent-mail', '/stringee-agents',
-  '/leads-upload', '/gsm-status', '/settings/call-quality',
+  '/leads-upload', '/settings/call-quality',
   '/admin/users', '/admin/campaigns', '/admin/lists', '/admin/leads', '/admin/dnc',
 ];
 

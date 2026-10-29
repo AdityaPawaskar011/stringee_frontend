@@ -12,40 +12,13 @@ import {
   useRescoreCallsMutation,
 } from '@/services';
 
+import { inputClass, label, primaryBtn, ghostBtn, apiError } from './callQualityUi';
+import Section from './CallQualitySection';
+import CallQualityAiBuilder from './CallQualityAiBuilder';
+
 // Settings → Call Quality (api/routers/call_quality_settings.py): what the AI scores
 // this company's calls on. The call-quality service builds its prompt from these
 // (api/services/call_quality_prompt.py); new calls use them within a minute.
-
-const inputClass =
-  'w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm text-foreground ' +
-  'placeholder:text-muted-foreground/60 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition';
-const label = 'text-[11px] font-semibold uppercase tracking-widest text-muted-foreground';
-const btn = 'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-smooth active:scale-[0.97] disabled:opacity-40';
-const primaryBtn = `${btn} bg-primary text-primary-foreground hover:opacity-90`;
-const ghostBtn = `${btn} border border-border text-foreground hover:bg-secondary/60`;
-
-const apiError = (e, fallback) => {
-  const d = e?.data?.detail;
-  return typeof d === 'string' ? d : fallback;
-};
-
-function Section({ icon, title, subtitle, children }) {
-  const Icon = icon;
-  return (
-    <section className="rounded-xl border border-border bg-card/60 p-4 md:p-5 space-y-4">
-      <header className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-lg border border-primary/20 bg-primary/10 grid place-items-center">
-          <Icon className="w-4 h-4 text-primary" />
-        </div>
-        <div>
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-        </div>
-      </header>
-      {children}
-    </section>
-  );
-}
 
 function IconButton({ title, onClick, disabled, danger, children }) {
   return (
@@ -308,6 +281,7 @@ export default function CallQualityPage() {
         {error && <p className="text-sm text-rose-300">{apiError(error, 'Could not load the settings')}</p>}
         {data && (
           <>
+            <CallQualityAiBuilder data={data} />
             <Criteria data={data} />
             <Settings key={key} data={data} />
             <Preview />

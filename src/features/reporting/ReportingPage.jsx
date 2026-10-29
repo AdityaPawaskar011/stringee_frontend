@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Flame, Loader2, RefreshCw, Search, AlertTriangle, Columns3, Sun, Moon } from 'lucide-react';
+import { Flame, Loader2, RefreshCw, Search, AlertTriangle, Columns3, Sun, Moon, Download } from 'lucide-react';
 
 import { selectIsAdmin, selectUser } from '@/features/auth/slices/authSlice';
 import { useGetHotMetaLeadsQuery, useGetHotMetaLeadNotesMappingQuery } from '@/services';
@@ -12,6 +12,7 @@ import { DISPOSITIONS } from '@/features/leads/constants';
 import HotLeadsGrid from './components/HotLeadsGrid';
 import ManageCustomColumnsModal from './components/ManageCustomColumnsModal';
 import LeadDetailModal from './components/LeadDetailModal';
+import DownloadReportModal from './components/DownloadReportModal';
 
 // Page-scoped light/dark theme, persisted independently from other pages. Defaults to dark
 // (the app-wide look); the header toggle exposes the light "spreadsheet" theme.
@@ -62,6 +63,8 @@ export default function ReportingPage() {
   const [statusFilter, setStatusFilter] = useState(ALL_STATUSES);
   const [columnsOpen, setColumnsOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const gridApiRef = useRef(null);
 
   const [theme, setTheme] = useState(readInitialTheme);
   useEffect(() => {
@@ -109,6 +112,18 @@ export default function ReportingPage() {
       : dialerScoped.filter((r) => statusCode(r) === statusFilter)),
     [dialerScoped, statusFilter],
   );
+
+  // Rows for the report download: the grid's own order and header filters when it is
+  // mounted, else the page-filtered rows.
+  const getExportRows = useCallback(() => {
+    const api = gridApiRef.current;
+    if (api && !api.isDestroyed?.()) {
+      const out = [];
+      api.forEachNodeAfterFilterAndSort((node) => node.data && out.push(node.data));
+      return out;
+    }
+    return filtered;
+  }, [filtered]);
 
   const stats = useMemo(
     () => ({
@@ -184,6 +199,17 @@ export default function ReportingPage() {
                 <span className="text-xs">Columns</span>
               </button>
             )}
+            {isAdmin && (
+              <button
+                onClick={() => setDownloadOpen(true)}
+                disabled={isLoading || filtered.length === 0}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-smooth disabled:opacity-50 disabled:cursor-not-allowed"
+                title={filtered.length === 0 ? 'No rows to download' : 'Download this view as Excel or CSV'}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="text-xs">Download</span>
+              </button>
+            )}
             <button
               onClick={toggleTheme}
               className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary transition-smooth"
@@ -243,6 +269,7 @@ export default function ReportingPage() {
             formFields={formFields}
             theme={theme}
             onRowClick={setSelectedLead}
+            onGridApi={(api) => { gridApiRef.current = api; }}
           />
         )}
       </div>
@@ -250,6 +277,14 @@ export default function ReportingPage() {
       {isAdmin && columnsOpen && (
         <ManageCustomColumnsModal
           onClose={() => setColumnsOpen(false)}
+          formFields={formFields}
+        />
+      )}
+
+      {isAdmin && downloadOpen && (
+        <DownloadReportModal
+          onClose={() => setDownloadOpen(false)}
+          getRows={getExportRows}
           formFields={formFields}
         />
       )}

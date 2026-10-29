@@ -603,7 +603,7 @@ function CustomFieldCellRenderer(params) {
 
 // ────────── Grid wrapper ──────────
 
-export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = [], onRowClick, theme = 'dark' }) {
+export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = [], onRowClick, onGridApi, theme = 'dark' }) {
   const { error: toastError } = useToast();
   const maskPii = useSelector(selectMaskPii);
   const [updateLead] = useUpdateHotMetaLeadMutation();
@@ -1034,6 +1034,8 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
         getRowId={getRowId}
         rowClassRules={rowClassRules}
         onCellClicked={handleCellClicked}
+        // The page's report download reads rows in the grid's sort / header-filter order.
+        onGridReady={(e) => onGridApi?.(e.api)}
         suppressCellFocus
         suppressRowClickSelection
         enableCellTextSelection
