@@ -30,7 +30,6 @@ export const dashboardApi = createApi({
     'WaHolidays',
     'WaAutomation',
     'DoubleTick',
-    'Gsm',
     'StringeeAgents',
     'Integrations',
     'Dispositions',
@@ -43,6 +42,7 @@ export const dashboardApi = createApi({
     'AdminLists',
     'AdminLeads',
     'AdminDnc',
+    'ManualAnalysis',
   ],
   endpoints: () => ({}),
 });

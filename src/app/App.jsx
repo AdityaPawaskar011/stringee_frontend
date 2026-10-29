@@ -28,12 +28,12 @@ const WhatsAppLoginPage  = lazy(() => import('@/features/whatsapp-login/WhatsApp
 const WhatsAppSessionsPage = lazy(() => import('@/features/whatsapp-sessions/WhatsAppSessionsPage'));
 const WhatsAppAutomationPage = lazy(() => import('@/features/whatsapp-automation/WhatsAppAutomationPage'));
 const DoubleTickPage     = lazy(() => import('@/features/double-tick/DoubleTickPage'));
-const GsmStatusPage      = lazy(() => import('@/features/gsm-status/GsmStatusPage'));
 const StringeeAgentsPage = lazy(() => import('@/features/stringee-agents/StringeeAgentsPage'));
 const IntegrationsPage   = lazy(() => import('@/features/settings/IntegrationsPage'));
 const DispositionsPage   = lazy(() => import('@/features/settings/DispositionsPage'));
 const CompaniesPage      = lazy(() => import('@/features/platform/CompaniesPage'));
 const CallQualityPage    = lazy(() => import('@/features/settings/CallQualityPage'));
+const ManualAnalysisPage = lazy(() => import('@/features/manual-analysis/ManualAnalysisPage'));
 const AdminUsersPage     = lazy(() => import('@/features/admin/UsersPage'));
 const AdminCampaignsPage = lazy(() => import('@/features/admin/CampaignsPage'));
 const AdminListsPage     = lazy(() => import('@/features/admin/ListsPage'));
@@ -67,7 +67,6 @@ function App() {
                   <Route path="/whatsapp-sessions" element={<WhatsAppSessionsPage />} />
                   <Route path="/whatsapp-automation" element={<WhatsAppAutomationPage />} />
                   <Route path="/double-tick"       element={<DoubleTickPage />} />
-                  <Route path="/gsm-status"        element={<GsmStatusPage />} />
                   <Route path="/stringee-agents"   element={<StringeeAgentsPage />} />
                 </Route>
 
@@ -76,6 +75,7 @@ function App() {
                   <Route path="/settings/integrations" element={<IntegrationsPage />} />
                   <Route path="/settings/dispositions" element={<DispositionsPage />} />
                   <Route path="/settings/call-quality" element={<CallQualityPage />} />
+                  <Route path="/manual-analysis" element={<ManualAnalysisPage />} />
                   <Route path="/admin/users"     element={<AdminUsersPage />} />
                   <Route path="/admin/campaigns" element={<AdminCampaignsPage />} />
                   <Route path="/admin/lists"     element={<AdminListsPage />} />

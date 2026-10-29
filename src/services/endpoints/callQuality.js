@@ -11,6 +11,12 @@ export const {
   useReorderCriteriaMutation,
   useGetCallQualityPreviewQuery,
   useRescoreCallsMutation,
+  useGenerateCallQualityDraftMutation,
+  usePreviewCallQualityDraftMutation,
+  useGetCallQualitySampleCallsQuery,
+  useTestCallQualityDraftMutation,
+  useApplyCallQualityDraftMutation,
+  useRestoreCallQualityMutation,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
     // { settings, criteria, overall_modes, scale_max }
@@ -49,6 +55,37 @@ export const {
     // { sd, ed, confirm } -> { count, cap, queued }
     rescoreCalls: builder.mutation({
       query: (body) => ({ url: '/settings/call-quality/rescore', method: 'POST', body }),
+    }),
+
+    // ── Build with AI: nothing changes until applyCallQualityDraft ──
+    // { file, instruction } -> { draft, explanation, system_prompt }
+    generateCallQualityDraft: builder.mutation({
+      query: ({ file, instruction }) => {
+        const body = new FormData();
+        body.append('file', file);
+        body.append('instruction', instruction);
+        return { url: '/settings/call-quality/ai-draft', method: 'POST', body };
+      },
+    }),
+    // draft -> { system_prompt }
+    previewCallQualityDraft: builder.mutation({
+      query: (draft) => ({ url: '/settings/call-quality/ai-draft/preview', method: 'POST', body: { draft } }),
+    }),
+    // { calls: [...], uploads: [...] }
+    getCallQualitySampleCalls: builder.query({
+      query: () => '/settings/call-quality/sample-calls',
+    }),
+    // { draft, source: 'call' | 'manual', id } -> { draft_result, current_result }
+    testCallQualityDraft: builder.mutation({
+      query: (body) => ({ url: '/settings/call-quality/ai-draft/test', method: 'POST', body }),
+    }),
+    applyCallQualityDraft: builder.mutation({
+      query: (draft) => ({ url: '/settings/call-quality/ai-draft/apply', method: 'POST', body: { draft } }),
+      invalidatesTags: ['CallQuality'],
+    }),
+    restoreCallQuality: builder.mutation({
+      query: () => ({ url: '/settings/call-quality/restore', method: 'POST' }),
+      invalidatesTags: ['CallQuality'],
     }),
   }),
 });
