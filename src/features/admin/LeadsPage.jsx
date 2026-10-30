@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRightLeft, Contact, RotateCcw, Search, Trash2, Upload } from 'lucide-react';
+import { ArrowRightLeft, ChevronDown, Contact, Download, RotateCcw, Search, Trash2, Upload } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useToast } from '@/shared/hooks/useToast';
@@ -23,6 +23,67 @@ import { apiError, buttonClass, fmtDateTime, ghostButtonClass, inputClass } from
 // is never changed; the API counts it as skipped.
 
 const PAGE_SIZE = 50;
+
+// The rows of public/sample-admin-leads.xlsx, shown under "See an example".
+const SAMPLE_HEAD = ['phone', 'first_name', 'last_name', 'email', 'city', 'address1', 'comments', 'source', 'owner', 'budget'];
+const SAMPLE_ROWS = [
+  ['9000000001', 'Asha', 'Patel', 'asha@example.com', 'Mumbai', '12 MG Road', 'Interested in gold plan', 'Expo 2026', '', '50000'],
+  ['+91 90000 00002', 'Ravi', 'Kumar', 'ravi@example.com', 'Pune', '', 'Call after 5 pm', 'Website', '', ''],
+  ['09000000003', 'Neha', '', 'neha@example.com', 'Delhi', '', '', 'Referral', '', '25000'],
+];
+
+function SampleFile() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        <a href="/sample-admin-leads.xlsx" download
+          className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 font-medium text-primary hover:bg-primary/20 transition-smooth">
+          <Download className="w-3.5 h-3.5" /> Download sample Excel
+        </a>
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+          className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-smooth">
+          See an example
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
+      {open && (
+        <div className="space-y-2 animate-fade-in">
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full text-xs">
+              <thead className="bg-secondary/40">
+                <tr>
+                  {SAMPLE_HEAD.map((h) => (
+                    <th key={h} className={`px-3 py-2 text-left font-mono font-semibold whitespace-nowrap
+                      ${h === 'phone' ? 'text-primary' : 'text-foreground'}`}>
+                      {h}{h === 'phone' && ' *'}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {SAMPLE_ROWS.map((r, i) => (
+                  <tr key={i} className="border-t border-border/60">
+                    {r.map((v, j) => (
+                      <td key={j} className="px-3 py-1.5 whitespace-nowrap text-muted-foreground">{v || <span className="opacity-40">—</span>}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <ul className="list-disc pl-5 text-xs text-muted-foreground space-y-0.5">
+            <li><span className="text-primary">phone *</span> is the only required column. 10 digits = India; +91, spaces and a leading 0 are fine.</li>
+            <li>Instead of first_name / last_name you can use one <code>name</code> column.</li>
+            <li><code>owner</code> is an agent&apos;s login username (e.g. agentA), or blank. A name that is not a login rejects that row.</li>
+            <li>Any other column (like <code>budget</code>) is kept on the lead as extra details.</li>
+            <li>Choose the list above; the file needs no list or campaign column. Max 50,000 rows.</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function UploadPanel({ lists, defaultListId }) {
   const { success, error } = useToast();
@@ -67,6 +128,7 @@ function UploadPanel({ lists, defaultListId }) {
         comments, source, owner (a username). Any other column is kept on the lead.
         Numbers already in your company or on the do-not-call list are skipped.
       </p>
+      <SampleFile />
       {result && (
         <div className="rounded-lg border border-border bg-card/60 p-3 text-sm space-y-2">
           <div className="flex flex-wrap gap-4">

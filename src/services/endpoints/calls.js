@@ -14,6 +14,7 @@ export const {
   useStringeeClientTokenMutation,
   useGetAgentStateQuery,
   useSetAgentStateMutation,
+  useGetBreakTypesQuery,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
     // The signed-in agent's state on the server: available | paused | in_call | wrap_up.
@@ -25,6 +26,11 @@ export const {
     setAgentState: builder.mutation({
       query: (body) => ({ url: '/agent/state', method: 'PUT', body }),
       invalidatesTags: ['AgentState'],
+    }),
+    // The breaks an agent can pick when pausing: [{ key, label }].
+    getBreakTypes: builder.query({
+      query: () => '/agent/breaks',
+      keepUnusedDataFor: 3600,
     }),
     dialNext: builder.mutation({
       query: (params = {}) => ({

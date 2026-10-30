@@ -6,6 +6,8 @@ export const {
   useGetIntegrationsQuery,
   useSaveIntegrationMutation,
   useTestIntegrationMutation,
+  useGetStringeeSettingsQuery,
+  useSaveStringeeSettingsMutation,
 } = dashboardApi.injectEndpoints({
   endpoints: (builder) => ({
     getIntegrations: builder.query({
@@ -23,6 +25,19 @@ export const {
       }),
       // /me carries the menu's integrations and the sender address: refresh both.
       invalidatesTags: ['Integrations', 'Me'],
+    }),
+
+    // Settings → Stringee: the company's caller IDs and SMS sender, with the
+    // Stringee project's numbers to pick from (numbers: null when Stringee is down).
+    getStringeeSettings: builder.query({
+      query: () => '/settings/stringee',
+      providesTags: ['StringeeSettings'],
+    }),
+    // body: { caller_ids: [...], sms_from }
+    saveStringeeSettings: builder.mutation({
+      query: (body) => ({ url: '/settings/stringee', method: 'PUT', body }),
+      // /me carries integrations.stringee_sms, which the sender switches on.
+      invalidatesTags: ['StringeeSettings', 'Me'],
     }),
 
     // args: { kind, to? } — email without `to` only connects and logs in.

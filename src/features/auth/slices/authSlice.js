@@ -51,7 +51,7 @@ export const selectMaskPii = (state) => MASK_PII_ENABLED && !selectCanViewPii(st
 // Which integrations the user's company has (from /login and /me). A session from before
 // this field existed shows everything; the API refuses what the company does not have.
 const ALL_INTEGRATIONS = Object.freeze({
-  whatsapp: true, stringee: true, email: true, sms: true, doubletick: true,
+  whatsapp: true, stringee: true, stringee_sms: true, email: true, sms: true, doubletick: true,
 });
 export const selectIntegrations = (state) => state.auth.user?.integrations || ALL_INTEGRATIONS;
 // Platform admin (Postgres platform_admins): company selector + Platform → Companies.

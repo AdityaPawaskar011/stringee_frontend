@@ -11,7 +11,8 @@ import {
 } from '@/services';
 import { useToast } from '@/shared/hooks/useToast';
 import { useDialNumber } from '@/features/calls/hooks/useDialNumber';
-import { selectMaskPii } from '@/features/auth/slices/authSlice';
+import { selectIntegrations, selectMaskPii } from '@/features/auth/slices/authSlice';
+import SendSmsButton from '@/features/sms/SendSmsButton';
 import { maskEmail, maskPhone } from '@/shared/lib/mask';
 import { gridTheme } from '@/features/manager-view/components/gridConfig';
 import { CONTACT_OPTIONS } from '../constants';
@@ -234,16 +235,28 @@ function DepositedCellRenderer(params) {
 
 // Agents: a Call button that dials the row's number (the same dial as the call
 // page's manual box), with Save beside it only while the row has unsaved edits.
-// Admins: Save, as before.
+// Admins: Save, as before. Everyone: SMS (Stringee), when it is set up.
 function ActionCellRenderer(params) {
   const { isAdmin, canEdit, dirtySet } = params.context;
   const row = params.data;
-  if (isAdmin) return <SaveButton params={params} />;
   return (
     <div className="flex items-center gap-1.5">
-      <CallButton params={params} />
-      {canEdit(row) && dirtySet.has(row.lead_id) && <SaveButton params={params} />}
+      {!isAdmin && <CallButton params={params} />}
+      <SmsButton row={row} />
+      {(isAdmin || (canEdit(row) && dirtySet.has(row.lead_id))) && <SaveButton params={params} />}
     </div>
+  );
+}
+
+function SmsButton({ row }) {
+  return (
+    <SendSmsButton
+      phone={row?.phone}
+      name={row?.name || row?.vici_call_first_name}
+      iconSize={12}
+      className="px-2.5 py-1 text-xs font-medium rounded-md border
+        border-primary/40 bg-primary/15 text-primary hover:bg-primary/25 active:scale-[0.97]"
+    />
   );
 }
 
@@ -606,6 +619,7 @@ function CustomFieldCellRenderer(params) {
 export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = [], onRowClick, onGridApi, theme = 'dark' }) {
   const { error: toastError } = useToast();
   const maskPii = useSelector(selectMaskPii);
+  const smsOn = !!useSelector(selectIntegrations).stringee_sms;
   const [updateLead] = useUpdateHotMetaLeadMutation();
   const [updateCustomFields] = useUpdateHotMetaLeadCustomFieldsMutation();
   const gridRef = useRef(null);
@@ -971,15 +985,15 @@ export default function HotLeadsGrid({ rows, currentUser, isAdmin, formFields = 
       {
         headerName: 'Action',
         colId: '__action',
-        // Agents get Call (+ Save while editing), admins just Save.
-        width: isAdmin ? 110 : 170,
+        // Agents get Call (+ Save while editing), admins Save; both SMS when it is set up.
+        width: (isAdmin ? 110 : 170) + (smsOn ? 75 : 0),
         pinned: 'right',
         sortable: false,
         filter: false,
         cellRenderer: ActionCellRenderer,
       },
     ];
-  }, [formFields, maskPii, isAdmin]);
+  }, [formFields, maskPii, isAdmin, smsOn]);
 
   const defaultColDef = useMemo(
     () => ({

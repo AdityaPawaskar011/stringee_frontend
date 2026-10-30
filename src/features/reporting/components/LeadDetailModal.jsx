@@ -6,6 +6,7 @@ import { selectMaskPii, selectUser } from '@/features/auth/slices/authSlice';
 import { maskPhone } from '@/shared/lib/mask';
 import { dash } from '@/features/manager-view/utils';
 import WhatsAppThread from '@/features/whatsapp/components/WhatsAppThread';
+import SendSmsButton from '@/features/sms/SendSmsButton';
 import { dispositionLabel } from '../utils';
 import LeadInfoPanel, { Group, Stars } from './LeadInfoPanel';
 
@@ -61,6 +62,12 @@ export default function LeadDetailModal({ lead, onClose }) {
               )}
               <Stars value={lead.call_rating} />
             </div>
+            <SendSmsButton
+              phone={lead.phone}
+              name={name}
+              iconSize={14}
+              className="h-8 rounded-lg border border-border bg-secondary/60 px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+            />
             <button
               onClick={onClose}
               className="h-8 w-8 grid place-items-center rounded-lg border border-border bg-secondary/60 text-muted-foreground hover:text-foreground transition-smooth active:scale-90"

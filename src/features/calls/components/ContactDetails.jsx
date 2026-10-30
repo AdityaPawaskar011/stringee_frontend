@@ -12,6 +12,7 @@ import { maskEmail, maskPhone } from "@/shared/lib/mask";
 import { phoneCountry, flagUrl } from "@/shared/lib/phoneCountry";
 import { hangup as stringeeHangup } from "@/features/calls/lib/stringeePhone";
 import { dialErrorMessage, hasCallId } from "@/features/calls/lib/dialError";
+import SendSmsButton from "@/features/sms/SendSmsButton";
 
 // How Dial Next picked this lead (/call queue_step).
 const QUEUE_BADGE = {
@@ -247,6 +248,12 @@ function ContactDetails({inCallLogData}) {
                         {lead.phone_number ? (maskPii ? maskPhone(lead.phone_number) : lead.phone_number) : "—"}
                       </span>
                       {leadCountry && <CountryChip country={leadCountry} />}
+                      <SendSmsButton
+                        phone={lead.phone_number}
+                        name={[lead.first_name, lead.last_name].filter(Boolean).join(" ")}
+                        iconSize={13}
+                        className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs font-medium text-slate-200 hover:bg-white/10"
+                      />
                     </div>
 
                     {lead.email?.trim() && (

@@ -24,3 +24,5 @@ export * from './endpoints/platform';
 export * from './endpoints/callQuality';
 export * from './endpoints/admin';
 export * from './endpoints/manualAnalysis';
+export * from './endpoints/agentActivity';
+export * from './endpoints/sms';

@@ -16,12 +16,12 @@ import {
   ListOrdered,
   Building2,
   PlugZap,
+  PhoneOutgoing,
   PhoneCall,
   Route,
   Send,
   ShieldCheck,
   Smartphone,
-  Upload,
   UserCog,
   UserPlus,
   Users,
@@ -102,7 +102,6 @@ function baseNavGroups({ isAdmin, isWhatsappAdmin, isCompanyAdmin }) {
       {
         label: "Leads",
         items: [
-          { name: "Leads Upload", path: "/leads-upload", icon: Upload, description: "Bring new leads into the dialler" },
           { name: "Lead Router", path: "/campaign-leads", icon: Route, description: "Rules that send each lead to the right campaign" },
           { name: "Lead Management", path: "/lead-management", icon: Users, description: "Meta and website leads, from first touch onwards" },
         ],
@@ -150,6 +149,7 @@ function baseNavGroups({ isAdmin, isWhatsappAdmin, isCompanyAdmin }) {
           { name: "Integrations", path: "/settings/integrations", icon: PlugZap, description: "Your company's own email and other accounts" },
           { name: "Dispositions", path: "/settings/dispositions", icon: ListChecks, description: "The call outcomes your agents choose from" },
           { name: "Call Quality", path: "/settings/call-quality", icon: Gauge, description: "What the AI scores your calls on" },
+          { name: "Stringee", path: "/settings/stringee", icon: PhoneOutgoing, description: "The numbers your calls go out from, and your SMS sender", requires: "stringee" },
         ],
       }] : []),
     ];

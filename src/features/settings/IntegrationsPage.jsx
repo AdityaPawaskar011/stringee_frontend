@@ -142,6 +142,7 @@ function IntegrationCard({ item }) {
               placeholder={s.set ? `${s.value}  (saved — type to replace)` : 'Not set'}
               onChange={(e) => setSecrets((cur) => ({ ...cur, [s.name]: e.target.value }))}
             />
+            {s.help && <p className="text-[11px] text-muted-foreground/80">{s.help}</p>}
           </div>
         ))}
       </div>

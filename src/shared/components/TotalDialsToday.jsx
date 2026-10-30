@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux';
 import { OverviewCard } from '@/features/dashboard/components/OverviewCard';
 import { useGetMetaLeadStatsQuery, useGetTotalDialsTodayQuery } from '@/services';
 import { selectIsAdmin } from '@/features/auth/slices/authSlice';
-import { useAgentState } from '@/features/calls/hooks/useAgentState';
+import BreakMenu from '@/features/calls/components/BreakMenu';
 import { SkeletonOverviewCard } from '@/shared/components/ui';
 
 const TotalDialsToday = () => {
@@ -22,8 +22,6 @@ const TotalDialsToday = () => {
   });
   const location = useLocation();
   const isCallPage = location.pathname === "/call";
-  // Pause / Resume is the agent's state on the server (/agent/state).
-  const { isPaused, toggle: togglePause, isBusy: stateBusy } = useAgentState();
 
   const {
     total_dials,
@@ -71,41 +69,8 @@ const TotalDialsToday = () => {
             <Clock className="w-4 h-4 text-blue-400" />
             Total Dials Today
           </h2>
-          {!isAdmin && (
-            <div className='flex gap-2 items-center' >
-              <button
-              onClick={togglePause}
-              disabled={stateBusy}
-              className={[
-                "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold",
-                "border transition-all duration-200 backdrop-blur",
-                "shadow-[0_10px_30px_rgba(0,0,0,0.45)]",
-                isPaused
-                  ? "border-emerald-500/40 bg-emerald-600/20 text-emerald-200 " +
-                  "hover:bg-emerald-600/30 hover:text-emerald-100 active:bg-emerald-600/40"
-                  : "border-amber-500/40 bg-amber-600/20 text-amber-200 " +
-                  "hover:bg-amber-600/30 hover:text-amber-100 active:bg-amber-600/40",
-              ].join(" ")}
-              title={isPaused ? "Resume receiving calls" : "Pause receiving calls"}
-            >
-              {isPaused ? (
-                <>
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden>
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                  RESUME
-                </>
-              ) : (
-                <>
-                  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden>
-                    <path d="M6 5h4v14H6zm8 0h4v14h-4z" />
-                  </svg>
-                  PAUSE
-                </>
-              )}
-            </button>
-            </div>
-          )}
+          {/* Break / Resume is the agent's state on the server (/agent/state). */}
+          {!isAdmin && <BreakMenu />}
         </div>
 
         {/* Columns follow the CARD's width, not the screen's: on the dashboard this

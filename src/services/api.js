@@ -43,6 +43,7 @@ export const dashboardApi = createApi({
     'AdminLeads',
     'AdminDnc',
     'ManualAnalysis',
+    'StringeeSettings',
   ],
   endpoints: () => ({}),
 });

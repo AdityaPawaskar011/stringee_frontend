@@ -33,6 +33,7 @@ const IntegrationsPage   = lazy(() => import('@/features/settings/IntegrationsPa
 const DispositionsPage   = lazy(() => import('@/features/settings/DispositionsPage'));
 const CompaniesPage      = lazy(() => import('@/features/platform/CompaniesPage'));
 const CallQualityPage    = lazy(() => import('@/features/settings/CallQualityPage'));
+const StringeePage       = lazy(() => import('@/features/settings/StringeePage'));
 const ManualAnalysisPage = lazy(() => import('@/features/manual-analysis/ManualAnalysisPage'));
 const AdminUsersPage     = lazy(() => import('@/features/admin/UsersPage'));
 const AdminCampaignsPage = lazy(() => import('@/features/admin/CampaignsPage'));
@@ -75,6 +76,7 @@ function App() {
                   <Route path="/settings/integrations" element={<IntegrationsPage />} />
                   <Route path="/settings/dispositions" element={<DispositionsPage />} />
                   <Route path="/settings/call-quality" element={<CallQualityPage />} />
+                  <Route path="/settings/stringee" element={<StringeePage />} />
                   <Route path="/manual-analysis" element={<ManualAnalysisPage />} />
                   <Route path="/admin/users"     element={<AdminUsersPage />} />
                   <Route path="/admin/campaigns" element={<AdminCampaignsPage />} />

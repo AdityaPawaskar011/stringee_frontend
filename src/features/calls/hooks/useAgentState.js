@@ -14,6 +14,9 @@ import { useToast } from "@/shared/hooks/useToast";
  * Only "paused" pauses dialling; in_call and wrap_up are the call itself (/call,
  * /hangup and /submit_status set them). A fresh login has no state yet and the
  * server reports "paused", so an agent starts paused and presses Resume.
+ *
+ * Pausing is taking a break: takeBreak(key) pauses with a break type from
+ * GET /agent/breaks as the reason, and the server logs it for the admins.
  */
 export function useAgentState() {
   const dispatch = useDispatch();
@@ -50,10 +53,17 @@ export function useAgentState() {
     [putState, dispatch, toastError],
   );
 
-  const toggle = useCallback(
-    () => setState(isPaused ? "available" : "paused"),
-    [isPaused, setState],
-  );
+  const takeBreak = useCallback((breakType) => setState("paused", breakType), [setState]);
+  const resume = useCallback(() => setState("available"), [setState]);
 
-  return { state, isPaused, since: data?.since ?? null, toggle, setState, isBusy: isSaving || isFetching };
+  return {
+    state,
+    isPaused,
+    reason: data?.reason ?? null,
+    since: data?.since ?? null,
+    takeBreak,
+    resume,
+    setState,
+    isBusy: isSaving || isFetching,
+  };
 }

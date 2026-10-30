@@ -12,6 +12,7 @@ import { maskEmail } from "@/shared/lib/mask";
 import { useToast } from "@/shared/hooks/useToast";
 import { dialErrorMessage, hasCallId } from "@/features/calls/lib/dialError";
 import { TONE } from "@/features/calls/lib/dispositionTone";
+import SendSmsButton from "@/features/sms/SendSmsButton";
 
 const AgentMailModal = lazy(() => import("@/features/agent-mail/AgentMailModal"));
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -346,8 +347,15 @@ const integrations = useSelector(selectIntegrations);
 
   {/* SMS + WhatsApp + Email */}
   <div className="w-full md:w-1/2 flex gap-3">
-    {/* Send SMS */}
-    {integrations.sms && (
+    {/* Send SMS: compose through Stringee when it is set up, else the company's Twilio. */}
+    {integrations.stringee_sms ? (
+      <SendSmsButton
+        phone={lead?.phone_number}
+        name={leadFullName}
+        iconSize={18}
+        className="flex-1 rounded-xl px-4 py-3 font-semibold bg-blue-600 text-white hover:bg-blue-700"
+      />
+    ) : integrations.sms && (
     <button
       onClick={handleSendSMS}
       // disabled={!phoneNumber}

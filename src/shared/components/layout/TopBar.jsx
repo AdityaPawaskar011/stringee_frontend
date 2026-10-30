@@ -15,6 +15,7 @@ import {
 import { useAutoDial } from "@/features/calls/hooks/useAutoDial";
 import { useStringeeBrowserCall } from "@/features/calls/hooks/useStringeeBrowserCall";
 import { useStringeeHealth } from "@/features/calls/hooks/useStringeeHealth";
+import BreakNotificationBell from "@/features/agent-activity/BreakNotificationBell";
 import NotificationBell from "@/features/whatsapp/NotificationBell";
 import { CompanySelector } from "@/shared/components/company/CompanyControls";
 import BrandMark from "@/shared/components/BrandMark";
@@ -120,6 +121,7 @@ export default function TopBar() {
               />
             )}
 
+            {user && isAdmin && <BreakNotificationBell />}
             {user && <NotificationBell />}
 
             <div className="hidden md:block text-right leading-tight">

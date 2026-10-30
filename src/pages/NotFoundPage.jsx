@@ -6,7 +6,6 @@ import { selectIsAdmin, selectUser } from "@/features/auth/slices/authSlice";
 const adminQuickLinks = [
   { name: "Dashboard", path: "/" },
   { name: "Agent Productivity", path: "/selective" },
-  { name: "Leads Upload", path: "/leads-upload" },
   { name: "Lead Router", path: "/campaign-leads" },
 ];
 const agentQuickLinks = [{ name: "Call Workspace", path: "/call" }];

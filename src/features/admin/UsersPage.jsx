@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { KeyRound, Pencil, Plus, Search, Users } from 'lucide-react';
 import { useToast } from '@/shared/hooks/useToast';
+import { selectUser } from '@/features/auth/slices/authSlice';
 import Modal from '@/features/email-templates/components/Modal';
 import {
   useGetAdminUsersQuery,
@@ -32,6 +34,11 @@ function UserForm({ user, campaigns, onDone }) {
   const [createUser, { isLoading: creating }] = useCreateAdminUserMutation();
   const [updateUser, { isLoading: updating }] = useUpdateAdminUserMutation();
   const isNew = !user;
+  // The admin's own login: no deactivating, demoting or renaming it (the API refuses
+  // that too — the session in use would lock itself out).
+  const me = useSelector(selectUser);
+  const isSelf = !isNew && !!me?.user && user.username.toLowerCase() === String(me.user).toLowerCase();
+  const selfHint = isSelf ? 'You cannot change this on your own login' : undefined;
   const [form, setForm] = useState(() => (user ? {
     ...blank, ...user,
     full_name: user.full_name || '', stringee_user_id: user.stringee_user_id || '',
@@ -70,15 +77,15 @@ function UserForm({ user, campaigns, onDone }) {
   return (
     <form onSubmit={submit} className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Username">
-          <input className={inputClass} value={form.username} maxLength={50} autoComplete="off"
-            onChange={set('username')} placeholder="e.g. 8016" />
+        <Field label="Username" hint={selfHint}>
+          <input className={`${inputClass} disabled:opacity-50`} value={form.username} maxLength={50} autoComplete="off"
+            onChange={set('username')} placeholder="e.g. 8016" disabled={isSelf} />
         </Field>
         <Field label="Full name">
           <input className={inputClass} value={form.full_name} maxLength={100} onChange={set('full_name')} />
         </Field>
-        <Field label="Role">
-          <select className={inputClass} value={form.role} onChange={set('role')}>
+        <Field label="Role" hint={selfHint}>
+          <select className={`${inputClass} disabled:opacity-50`} value={form.role} onChange={set('role')} disabled={isSelf}>
             {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
         </Field>
@@ -88,9 +95,9 @@ function UserForm({ user, campaigns, onDone }) {
               onChange={set('password')} />
           </Field>
         ) : (
-          <Field label="Status">
-            <label className="flex items-center gap-2 py-2 text-sm text-foreground">
-              <input type="checkbox" checked={form.is_active}
+          <Field label="Status" hint={selfHint}>
+            <label className={`flex items-center gap-2 py-2 text-sm text-foreground ${isSelf ? 'opacity-50' : ''}`}>
+              <input type="checkbox" checked={form.is_active} disabled={isSelf}
                 onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))} />
               Active (can sign in)
             </label>
